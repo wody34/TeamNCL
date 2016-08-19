@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>simpleMap</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.js"></script>
+  <script type="text/javascript">
+    //초기화 함수
+    function initTmap(){
+      centerLL = new Tmap.LonLat(14145677.4, 4511257.6);
+      map = new Tmap.Map({div:'map_div',
+        width:'100%',
+        height:'800px',
+        transitionEffect:"resize",
+        animation:true
+      });
+      searchRoute();
+      marker();
+    };
+    //경로 정보 로드
+    function searchRoute(){
+      var routeFormat = new Tmap.Format.KML({extractStyles:true, extractAttributes:true});
+      var startX = 126.995880;
+      var startY = 37.571076;
+      var route1X = 126.976011;
+      var route1Y = 37.573611;
+      var route2X = 127.002350;
+      var route2Y = 37.559352;
+      var endX = 127.002804;
+      var endY = 37.540085;
+      var urlStr = "https://apis.skplanetx.com/tmap/routes?version=1&format=xml";
+      urlStr += "&startX="+startX;
+      urlStr += "&startY="+startY;
+      urlStr += "&passList="+route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0";
+      urlStr += "&endX="+endX;
+      urlStr += "&endY="+endY;
+      urlStr += "&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96";
+      urlStr += "&reqCoordType=WGS84GEO";
+      urlStr += "&resCoordType=EPSG3857";
+      var prtcl = new Tmap.Protocol.HTTP({
+        url: urlStr,
+        format:routeFormat
+      });
+      console.log(urlStr);
+      var routeLayer = new Tmap.Layer.Vector("route", {protocol:prtcl, strategies:[new Tmap.Strategy.Fixed()]});
+      routeLayer.events.register("featuresadded", routeLayer, onDrawnFeatures);
+      map.addLayer(routeLayer);
+    }
+    //경로 그리기 후 해당영역으로 줌
+    function onDrawnFeatures(e){
+      map.zoomToExtent(this.getDataExtent());
+    }
+
+    function marker() {
+      var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+      map.addLayer(markerLayer);
+
+      $.get(
+        'https://apis.skplanetx.com/tmap/routes?version=1&format=json&startX=126.99588&startY=37.571076&passList=126.976011,37.573611,0,0,0_127.00235,37.559352,0,G,0&endX=127.002804&endY=37.540085&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96&reqCoordType=WGS84GEO'
+        , function(data) {
+          var routes = [];
+
+          for(var i in data.features) {
+            var coordinates = data.features[i].geometry.coordinates;
+
+            if(data.features[i].geometry.type === "Point")
+              routes.push([coordinates]);
+            else
+              routes.push(coordinates);
+          }
+          routes = _.flatten(routes);
+          for(var i = 0; i < routes.length; ++i) {
+            console.log(routes[i][0], routes[i][1]);
+            var size = new Tmap.Size(50,50);
+            var offset = new Tmap.Pixel(-(size.w/2), -size.h);
+            var icon = new Tmap.Icon('https://developers.skplanetx.com/upload/tmap/marker/pin_b_m_a.png', size, offset);
+            var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
+            markerLayer.addMarker(markers);
+          }
+        });
+    }
+  </script>
+</head>
+<body onload="initTmap()">
+<div id="map_div">
+</div>
+</body>
+</html>
