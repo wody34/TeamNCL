@@ -36,7 +36,7 @@ module.exports = {
       type: 'string',
       size: 20
     },
-    addr: {
+    addrDoro: {
       type: 'string',
       size: 150
     },
