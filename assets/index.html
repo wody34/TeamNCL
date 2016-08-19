@@ -17,34 +17,38 @@
         transitionEffect:"resize",
         animation:true
       });
-      searchRoute();
-      marker();
-    };
-    //경로 정보 로드
-    function searchRoute(){
-      var routeFormat = new Tmap.Format.KML({extractStyles:true, extractAttributes:true});
-      var startX = 126.995880;
-      var startY = 37.571076;
+
       var route1X = 126.976011;
       var route1Y = 37.573611;
       var route2X = 127.002350;
       var route2Y = 37.559352;
-      var endX = 127.002804;
-      var endY = 37.540085;
-      var urlStr = "https://apis.skplanetx.com/tmap/routes?version=1&format=xml";
-      urlStr += "&startX="+startX;
-      urlStr += "&startY="+startY;
-      urlStr += "&passList="+route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0";
-      urlStr += "&endX="+endX;
-      urlStr += "&endY="+endY;
-      urlStr += "&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96";
-      urlStr += "&reqCoordType=WGS84GEO";
-      urlStr += "&resCoordType=EPSG3857";
+
+      var param = {
+        version: 1,
+        startX: 126.995880,
+        startY: 37.571076,
+        endX: 126.872696,
+        endY: 37.498363,
+        passList: route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0",
+        appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+        reqCoordType: 'WGS84GEO',
+        resCoordType: 'EPSG3857'
+      };
+
+      var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
+
+      searchRoute(urlStr+"&format=xml");
+      marker(urlStr+"&format=json");
+    };
+    //경로 정보 로드
+    function searchRoute(url){
+      var routeFormat = new Tmap.Format.KML({extractStyles:true, extractAttributes:true});
+
       var prtcl = new Tmap.Protocol.HTTP({
-        url: urlStr,
+        url: url,
         format:routeFormat
       });
-      console.log(urlStr);
+
       var routeLayer = new Tmap.Layer.Vector("route", {protocol:prtcl, strategies:[new Tmap.Strategy.Fixed()]});
       routeLayer.events.register("featuresadded", routeLayer, onDrawnFeatures);
       map.addLayer(routeLayer);
@@ -54,33 +58,31 @@
       map.zoomToExtent(this.getDataExtent());
     }
 
-    function marker() {
+    function marker(url) {
       var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
       map.addLayer(markerLayer);
 
-      $.get(
-        'https://apis.skplanetx.com/tmap/routes?version=1&format=json&startX=126.99588&startY=37.571076&passList=126.976011,37.573611,0,0,0_127.00235,37.559352,0,G,0&endX=127.002804&endY=37.540085&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96&reqCoordType=WGS84GEO'
-        , function(data) {
-          var routes = [];
+      $.get(url, function(data) {
+        var routes = [];
 
-          for(var i in data.features) {
-            var coordinates = data.features[i].geometry.coordinates;
+        for(var i in data.features) {
+          var coordinates = data.features[i].geometry.coordinates;
 
-            if(data.features[i].geometry.type === "Point")
-              routes.push([coordinates]);
-            else
-              routes.push(coordinates);
-          }
-          routes = _.flatten(routes);
-          for(var i = 0; i < routes.length; ++i) {
-            console.log(routes[i][0], routes[i][1]);
-            var size = new Tmap.Size(50,50);
-            var offset = new Tmap.Pixel(-(size.w/2), -size.h);
-            var icon = new Tmap.Icon('https://developers.skplanetx.com/upload/tmap/marker/pin_b_m_a.png', size, offset);
-            var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
-            markerLayer.addMarker(markers);
-          }
-        });
+          if(data.features[i].geometry.type === "Point")
+            routes.push([coordinates]);
+          else
+            routes.push(coordinates);
+        }
+        routes = _.flatten(routes);
+        for(var i = 0; i < routes.length; ++i) {
+          console.log(routes[i][0], routes[i][1]);
+          var size = new Tmap.Size(50,50);
+          var offset = new Tmap.Pixel(-(size.w/2), -size.h);
+          var icon = new Tmap.Icon('https://developers.skplanetx.com/upload/tmap/marker/pin_b_m_a.png', size, offset);
+          var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
+          markerLayer.addMarker(markers);
+        }
+      });
     }
   </script>
 </head>
