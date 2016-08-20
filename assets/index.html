@@ -52,7 +52,7 @@
       var routeLayer = new Tmap.Layer.Vector("route", {protocol:prtcl, strategies:[new Tmap.Strategy.Fixed()]});
       routeLayer.events.register("featuresadded", routeLayer, onDrawnFeatures);
       map.addLayer(routeLayer);
-    }
+    }//
     //경로 그리기 후 해당영역으로 줌
     function onDrawnFeatures(e){
       map.zoomToExtent(this.getDataExtent());
