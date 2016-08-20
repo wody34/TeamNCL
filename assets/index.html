@@ -62,6 +62,11 @@
       var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
       map.addLayer(markerLayer);
 
+
+      $.get("/ChargingStation?limit=1000", function(data) {
+        console.log(JSON.stringify(data));
+      });
+
       $.get(url, function(data) {
         var routes = [];
 
@@ -74,14 +79,32 @@
             routes.push(coordinates);
         }
         routes = _.flatten(routes);
-        for(var i = 0; i < routes.length; ++i) {
-          console.log(routes[i][0], routes[i][1]);
+
+        var i = 0;
+        var addMarkerInterval = setInterval (function() {
+          //console.log(routes[i][0], routes[i][1]);
           var size = new Tmap.Size(50,50);
-          var offset = new Tmap.Pixel(-(size.w/2), -size.h);
-          var icon = new Tmap.Icon('https://developers.skplanetx.com/upload/tmap/marker/pin_b_m_a.png', size, offset);
+          var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+          var icon = new Tmap.Icon('vehicle.png', size, offset);
           var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
+
           markerLayer.addMarker(markers);
-        }
+
+          var removeMarkerInterval = setInterval(function() {
+            markerLayer.removeMarker(markers);
+          }, 10);
+
+          i++;
+
+          if (i == routes.length-8) {
+            clearInterval (addMarkerInterval);
+            clearInterval (removeMarkerInterval);
+          }
+        }, 10);
+//        for(var i = 0; i < routes.length; ++i) {
+//
+//        }
+
       });
     }
   </script>
