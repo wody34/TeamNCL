@@ -12,20 +12,23 @@
   <style>
     #left_menu {
       float: left;
-      width: 200px;
-      border-right: 2px solid gray;
+      width: 220px;
       margin: 0;
       padding: 1em;
     }
 
     #map_div {
-      margin-left: 200px;
+      margin-left: 220px;
+      border-left: 2px solid gray;
       padding: 1em;
       overflow: hidden;
     }
   </style>
 
   <script type="text/javascript">
+
+    var stopInterval = false;
+    var startX, startY, endX, endY;
 
     $.get("/ChargingStation?limit=1000", function(data) {
       console.log(data);
@@ -34,13 +37,66 @@
       for (var i = 0; i < data.length; i++) {
         processedData.push (data[i].statNm + "\n");
       }
-      document.getElementById ("rawData").innerText = processedData;
+
+      var sourceSelect = document.getElementById ("source_select");
+      while (sourceSelect.options.length > 0) {
+        sourceSelect.options.remove (0);
+      }
+      for (index in data) {
+        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].statNm, index);
+      }
+
+      var destinationSelect = document.getElementById ("destination_select");
+      while (destinationSelect.options.length > 0) {
+        destinationSelect.options.remove (0);
+      }
+      for (index in data) {
+        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].statNm, index);
+      }
+
+      var sourceSelectFunction = function (selectDefault) {
+        if (selectDefault == "selectDefault") {
+          startX = data [0].lng;
+          startY = data [0].lat;
+        }
+        else {
+          map.unloadDestroy();
+          stopInterval = true;
+
+          startX = data [this.selectedIndex].lng;
+          startY = data [this.selectedIndex].lat;
+
+          initTmap();
+        }
+      };
+
+      var destinationSelectFunction = function (selectDefault) {
+        if (selectDefault == "selectDefault") {
+          endX = data [0].lng;
+          endY = data [0].lat;
+        }
+        else {
+          map.unloadDestroy();
+          stopInterval = true;
+
+          endX = data [this.selectedIndex].lng;
+          endY = data [this.selectedIndex].lat;
+        }
+
+        initTmap();
+      };
+
+      sourceSelectFunction ("selectDefault");
+      destinationSelectFunction ("selectDefault");
+      sourceSelect.onchange = sourceSelectFunction;
+      destinationSelect.onchange = sourceSelectFunction;
     });
 
     //초기화 함수
     function initTmap(){
       centerLL = new Tmap.LonLat(14145677.4, 4511257.6);
-      map = new Tmap.Map({div:'map_div',
+      map = new Tmap.Map({
+        div:'map_div',
         //width:'100%',
         height:'800px',
         transitionEffect:"resize",
@@ -54,10 +110,10 @@
 
       var param = {
         version: 1,
-        startX: 126.995880,
-        startY: 37.571076,
-        endX: 126.872696,
-        endY: 37.498363,
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
         passList: route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0",
         appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
         reqCoordType: 'WGS84GEO',
@@ -72,7 +128,7 @@
         type: "fire",
         positionLng:14135337.340412281,
         positionLat:4518885.191777256
-      }
+      };
 
 
       searchRoute(urlStr+"&format=xml");
@@ -116,13 +172,9 @@
       },10000);
     }
 
-
-
-
     function marker(url) {
       var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
       map.addLayer(markerLayer);
-
       $.get(url, function(data) {
         var routes = [];
 
@@ -137,30 +189,44 @@
         routes = _.flatten(routes);
 
         var i = 0;
+
+        var stop = false;
+        var removeMarkerInterval = null;
+
         var addMarkerInterval = setInterval (function() {
-          var size = new Tmap.Size(50,50);
-          var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-          var icon = new Tmap.Icon('vehicle.png', size, offset);
-          var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
-
-          markerLayer.addMarker(markers);
-
-          var removeMarkerInterval = setInterval(function() {
-            markerLayer.removeMarker(markers);
-          }, 1100);
-
-          i++;
-
-          if (i == routes.length-8) {
+          if (stopInterval == true) {
+            stopInterval = false;
             clearInterval (addMarkerInterval);
             clearInterval (removeMarkerInterval);
+            stop = true;
+          }
+
+          if (stop == false) {
+            var size = new Tmap.Size(50,50);
+            var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+            var icon = new Tmap.Icon('vehicle.png', size, offset);
+            var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
+
+            markerLayer.addMarker(markers);
+
+            removeMarkerInterval = setInterval(function() {
+              markerLayer.removeMarker(markers);
+            }, 1100);
+
+            if (i == routes.length-8) {
+              clearInterval (addMarkerInterval);
+              clearInterval (removeMarkerInterval);
+            }
+
+            i++;
           }
         }, 1000);
       });
     }
   </script>
 </head>
-<body onload="initTmap()">
+
+<body>
 <!--Top Side-->
 <nav class ="navbar navbar-default navbar-fixed-top header-nav" style="margin-bottom: 0px; background: #ffffff; " role="navigation">
   <div class="container-fluid">
@@ -181,12 +247,12 @@
 <!--Body-->
 <section style="border-bottom: 1px solid #dedede; color: #4d5360; display: block;">
   <div id="left_menu">
-    <h3 style="color: #082a61;"><b>DATA</b></h3>
-    <pre id="rawData"></pre>
+    <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
+    <h5>출발지: <select id="source_select"></select><br><br></h5>
+    <h5>도착지: <select id="destination_select"></select></h5>
+
   </div>
   <div id="map_div"></div>
 </section>
-
-</div>
 </body>
 </html>
