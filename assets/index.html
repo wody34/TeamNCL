@@ -66,8 +66,19 @@
 
       var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
 
+      //sample event FOR detection 이벤트 타입 및 좌표 대입
+      var event = {
+        flag: 1,
+        type: "fire",
+        positionLng:14135337.340412281,
+        positionLat:4518885.191777256
+      }
+
+
       searchRoute(urlStr+"&format=xml");
       marker(urlStr+"&format=json");
+      //detection 이벤트 타입 및 좌표 대입
+      detectionEvent(event);
     }
     //경로 정보 로드
     function searchRoute(url){
@@ -86,6 +97,27 @@
     function onDrawnFeatures(e){
       map.zoomToExtent(this.getDataExtent());
     }
+
+
+    // detection event 발생 시, 이벤트 type, 이벤트 좌표를 받아 해당 위치에 10초 뒤에 표기
+    function detectionEvent(event){
+      var flag = event.flag;
+      var eventType = event.type.toString();
+      var size = new Tmap.Size(50,50);
+      var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+      var eventImage = new Tmap.Icon(eventType+'.png', size, offset);
+      var eventPositionLng = event.positionLng;
+      var eventPositionLat = event.positionLat;
+      var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
+      var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+      map.addLayer(markerLayer);
+      setTimeout(function(){
+        markerLayer.addMarker(eventMarker);
+      },10000);
+    }
+
+
+
 
     function marker(url) {
       var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
@@ -106,7 +138,6 @@
 
         var i = 0;
         var addMarkerInterval = setInterval (function() {
-          //console.log(routes[i][0], routes[i][1]);
           var size = new Tmap.Size(50,50);
           var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
           var icon = new Tmap.Icon('vehicle.png', size, offset);
