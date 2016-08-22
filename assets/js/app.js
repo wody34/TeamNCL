@@ -20,7 +20,6 @@ define([
       });
       // });
 
-
       var map;
       var stopInterval = false;
       $scope.route = {
@@ -150,6 +149,21 @@ define([
             var totalDistance = data.features[0].properties.totalDistance/1000;
             var totalTime = data.features[0].properties.totalTime;
 
+            var totalLength =0;
+            for (var i in data.features) {
+              //for (var j in data.features[i].geometry.coordinates) {
+              // console.log(data.features[i].geometry.coordinates[j].length);
+              //console.log(data);
+              if(data.features[i].geometry.coordinates.length==2){
+                totalLength +=1
+              }
+              else{
+                totalLength += data.features[i].geometry.coordinates.length;
+              }
+            }
+            var timeStep = totalTime/totalLength;
+            var distanceStep = totalDistance/totalLength;
+
             for (var i in data.features) {
               var coordinates = data.features[i].geometry.coordinates;
 
@@ -166,6 +180,8 @@ define([
               vehicle.marker = new Tmap.Marker(new Tmap.LonLat(lng, lat), icon);
               markerLayer.addMarker(vehicle.marker);
 
+              totalTime-=timeStep;
+              totalDistance-=distanceStep;
               var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+totalDistance+"km</li><li>예상 소요시간: "+totalTime+"s</li></ul>";
               var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(lng, lat), new Tmap.Size(100,20), popupMessage, false);
               popup.autoSize = true;
