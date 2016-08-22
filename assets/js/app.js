@@ -34,8 +34,14 @@ define([
           //console.log(data);
           //console.log(data.length);
           $scope.options.charging_stations = data;
+          for (var i in $scope.options.charging_stations){
+            $scope.options.charging_stations[i].usg = Math.floor(Math.random() * $scope.options.charging_stations[i].evNum);
+            //console.log("$scope.options.charging_stations[0].usg "+$scope.options.charging_stations[0].usg);
+          }
           $scope.route.src_gps = $scope.options.charging_stations[0];
+          //console.log($scope.options.charging_stations[0]);
           $scope.route.dest_gps = $scope.options.charging_stations[1];
+          //console.log($scope.options.charging_stations[2]);
         });
       };
 
@@ -109,7 +115,8 @@ define([
                 var evName = $scope.route.passlist[index].evName;
                 var evNum = $scope.route.passlist[index].evNum;
                 var type = $scope.route.passlist[index].type;
-                var usg = Math.floor(Math.random() * evNum);
+                var usg = $scope.route.passlist[index].usg;
+                //var usg = Math.floor(Math.random() * evNum);
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -117,7 +124,7 @@ define([
                 var stationMarker = new Tmap.Marker(lonLat, icon);
                 var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
                 stationMarker.events.register("click", markerLayer, function () {
-                  var popupMessage = "<ul><li>충전소: "+evName+"</li><li>충전 유형: "+type+"</li><li>보유 충전기: "+evNum+"대</li></ul>";
+                  var popupMessage = "<ul><li>충전소: "+evName+"</li><li>충전 유형: "+type+"</li><li>보유 충전기: "+evNum+"대</li><li>사용중: "+usg+"대</li></ul>";
                   var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
                   popup.autoSize = true;
                   $scope.map.addPopup(popup);
@@ -144,12 +151,12 @@ define([
         var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
 
         //sample event FOR detection 이벤트 타입 및 좌표 대입
-        var event = {
-          flag: 1,
-          type: "fire",
-          positionLng:14135337.340412281,
-          positionLat:4518885.191777256
-        };
+        //var event = {
+        //  flag: 1,
+        //  type: "fire",
+        //  positionLng:14135337.340412281,
+        //  positionLat:4518885.191777256
+        //};
 
         $scope.searchRoute(urlStr+"&format=xml");
         $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
@@ -202,7 +209,9 @@ define([
           $scope.markerLayer.addMarker(marker);
 
           if(driveStatus) {
-            var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+Math.round(driveStatus.totalDistance*100)/100+"km</li><li>예상 소요시간: "+Math.round(driveStatus.totalTime)+"초</li></ul>";
+            var maxDist = 190;
+            var availDist = maxDist- $scope.drivenDist;
+            var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+Math.round(driveStatus.totalDistance*100)/100+"km</li><li>예상 소요시간: "+Math.round(driveStatus.totalTime)+"초</li><li>주행 가능 거리: "+ Math.round(availDist)+"km</li></ul>";
             var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
             popup.autoSize = true;
             if($scope.tracking)
