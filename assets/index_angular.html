@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <link href= "/css/bootstrap.min.css" rel="stylesheet">
+  <link href= "/css/EVClient.css" rel="stylesheet">
+</head>
+<body ng-controller="EVClient">
+<!--Top Side-->
+<nav class ="navbar navbar-default navbar-fixed-top header-nav" style="margin-bottom: 0px; background: #ffffff; " role="navigation">
+  <div class="container-fluid">
+    <a href="#" class="navbar-brand"><b>C2V Connected Car Service Simulator</b></a>
+    <p class="navbar-text"> Simulation Result Page</p>
+    <img src="img_brandslogan10.gif" height="50" style="float: right;">
+  </div>
+</nav>
+
+<!--Title-->
+<section style="background: #0a2972; color: #ffffff; padding: 70px 0 30px 0; text-align: center;">
+  <div class="container">
+    <h1><b> C2V Connected Car Service Simulator Result </b></h1>
+    <p style="color: #ffffff;"><br>Simulation Result Page. We provide readable data from simulation result</p>
+  </div>
+</section>
+
+<!--Body-->
+<section style="border-bottom: 1px solid #dedede; color: #4d5360; display: block;">
+  <div id="left_menu">
+    <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
+    <h5>출발지: <select id="source_select"></select><br><br></h5>
+    <h5>도착지: <select id="destination_select"></select></h5>
+
+  </div>
+  <div id="map_div"></div>
+</section>
+</body>
+<script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96"></script>
+<script data-main="js/bootstrap" src="lib/require.js"></script>
+
+</html>
