@@ -173,7 +173,7 @@ define([
           $scope.markerLayer.addMarker(marker);
 
           if(driveStatus) {
-            var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+driveStatus.totalDistance+"km</li><li>예상 소요시간: "+driveStatus.totalTime+"s</li></ul>";
+            var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+Math.round(driveStatus.totalDistance*100)/100+"km</li><li>예상 소요시간: "+Math.round(driveStatus.totalTime)+"초</li></ul>";
             var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
             popup.autoSize = true;
             $scope.map.addPopup(popup);
