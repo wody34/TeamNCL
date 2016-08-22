@@ -21,8 +21,7 @@ define([
       };
 
       $scope.options = {
-        charging_stations: [],
-        dest_charging_stations: []
+        charging_stations: []
       };
 
       $http.get("/ChargingStation?limit=1000").then(function(response) {
@@ -35,12 +34,12 @@ define([
       });
 
       $scope.$watch('route', function(newValue, oldValue) {
-        console.log('src', $scope.options.src_charging_stations);
         console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
-          if(!_.isUndefined(map))
+          if(!_.isUndefined(map)) {
             map.unloadDestroy();
-          stopInterval = true;
+            stopInterval = true;
+          }
           $scope.initTmap();
         }
       }, true);
@@ -60,11 +59,6 @@ define([
           animation:true
         });
 
-        var route1X = 126.976011;
-        var route1Y = 37.5736110;
-        var route2X = 126.995880;
-        var route2Y = 37.559352;
-        if($scope.route.passlist.length > 0) {}
         var str = "";
         if($scope.route.passlist.length > 0) {
           for (var i = 0; i < $scope.route.passlist.length - 1; ++i) {
@@ -84,9 +78,6 @@ define([
           reqCoordType: 'WGS84GEO',
           resCoordType: 'EPSG3857'
         };
-
-
-        console.log('param', param)
 
         var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
 
@@ -144,7 +135,8 @@ define([
       $scope.marker = function(url) {
         var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
         map.addLayer(markerLayer);
-        $.get(url, function(data) {
+        $http.get(url).then(function(response) {
+          var data = response.data;
           var routes = [];
 
           for(var i in data.features) {
@@ -158,6 +150,7 @@ define([
           routes = _.flatten(routes);
 
           var i = 0;
+          console.log(routes);
 
           var stop = false;
           var removeMarkerInterval = null;
