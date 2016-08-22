@@ -10,7 +10,6 @@ define([
   function (angular) {
     //모듈 선언
     var $app = angular.module('TeamNCL', []);
-
     $app.controller('EVClient', ['$scope', '$http', function($scope, $http) {
       console.log("EVClient Activated");
 
@@ -19,6 +18,26 @@ define([
       io.socket.get('/Obstacle/subscribe', function() {
         console.log("Obstacle subscribed!");
       });
+
+      $scope.getElement = function() {
+        $scope.availDist = document.getElementById("availDist").value;
+        $scope.drivenDist = 190 - $scope.availDist;
+        $scope.searched = false;
+        //var s2dDistance=100;
+        //if($scope.availDist>s2dDistance){
+          //console.log(availDist.value-s2dDistance);
+          //document.write("<SELECT NAME=sltSample SIZE=1><OPTION VALUE=1>급속</OPTION><OPTION VALUE=2>완속</OPTION>  </SELECT>");
+        //}
+
+        $http.get("/EvPos?limit=1000").then(function(response) {
+          var data = response.data;
+          //console.log(data);
+          //console.log(data.length);
+          $scope.options.charging_stations = data;
+          $scope.route.src_gps = $scope.options.charging_stations[0];
+          $scope.route.dest_gps = $scope.options.charging_stations[1];
+        });
+      };
 
       $scope.route = {
         passlist: []
@@ -32,17 +51,8 @@ define([
 
       $scope.vehicles = [];
 
-      $http.get("/EvPos?limit=1000").then(function(response) {
-        var data = response.data;
-        //console.log(data);
-        //console.log(data.length);
-        $scope.options.charging_stations = data;
-        $scope.route.src_gps = $scope.options.charging_stations[0];
-        $scope.route.dest_gps = $scope.options.charging_stations[1];
-      });
-
       $scope.$watch('route', function(newValue, oldValue) {
-        console.log('value changed', newValue, oldValue);
+        //console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined($scope.map)) {
             $scope.vehicle.stopDrive();
@@ -57,8 +67,6 @@ define([
           $scope.initTmap();
         }
       }, true);
-
-
 
       $scope.addPassList = function() {
         console.log("add");
@@ -101,6 +109,7 @@ define([
                 var evName = $scope.route.passlist[index].evName;
                 var evNum = $scope.route.passlist[index].evNum;
                 var type = $scope.route.passlist[index].type;
+                var usg = Math.floor(Math.random() * evNum);
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -307,8 +316,18 @@ define([
             if (++self.index >= self.routes.length) {
               self.stopDrive();
             }
+
+            $scope.drivenDist += self.driveStatus.distanceStep;
+            if ($scope.searched == false && $scope.drivenDist >= 150) {
+              searchStation();
+              $scope.searched = true;
+            }
           }, 100);
         };
+
+        function searchStation() {
+          console.log('searchstation');
+        }
 
         Vehicle.prototype.stopDrive = function () {
           console.log('stop driving');

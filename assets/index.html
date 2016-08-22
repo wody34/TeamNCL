@@ -30,12 +30,11 @@
     <h3 style="color: #082a61;"><b>경로 설정<br></b></h3>
 
     <!--<form>-->
-    <label>주행가능 거리 (km)</label>
+    <label>최초 주행가능 거리 (km)</label>
     <input type="text" id="availDist"/>
       <!--<input type="button" value = "입력" onclick="getElement();">-->
     <button ng-click="getElement()">입력</button><br/>
     <!--</form><br/>-->
-
 
     <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <h5 ng-repeat="pass in route.passlist">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
@@ -59,8 +58,6 @@
         <!--}-->
       <!--}-->
     <!--</script>-->
-
-
 
   </div>
   <div id="map_div"></div>
