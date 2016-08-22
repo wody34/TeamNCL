@@ -44,8 +44,9 @@ define([
         console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined(map)) {
+            $scope.vehicle.stopDrive();
+            delete $scope.vehicle;
             map.unloadDestroy();
-            stopInterval = true;
           }
           $scope.initTmap();
         }
@@ -195,20 +196,24 @@ define([
         }
 
         Vehicle.prototype.startDrive = function (add, removePrev) {
+          console.log('startstart');
           var self = this;
           this.addMarkerInterval = setInterval(function () {
             var new_pos = {lng: self.routes[self.index][0], lat: self.routes[self.index][1]};
             self.changePosition(new_pos, add, removePrev);
             self.writeStatus();
-            if (self.index >= self.routes.length) {
+            console.log(self.index, self.routes.length);
+            if (++self.index >= self.routes.length) {
               self.stopDrive();
             }
-            ++self.index;
           }, 100);
 
         };
-        Vehicle.prototype.stopDrive = function (add, remove) {
+
+        Vehicle.prototype.stopDrive = function () {
+          console.log('stop driving');
           clearInterval(this.addMarkerInterval);
+          delete this.addMarkerInterval;
         };
 
         //TODO: 배터리 정보 추가 기입
