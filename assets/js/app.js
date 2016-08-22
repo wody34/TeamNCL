@@ -72,9 +72,14 @@ define([
         }
       }, true);
 
-      $scope.addPassList = function() {
+      $scope.addPassList = function(index) {
         console.log("add");
-        $scope.route.passlist.push($scope.options.charging_stations[$scope.route.passlist.length+2]);
+        if (index == undefined) {
+          $scope.route.passlist.push($scope.options.charging_stations[$scope.route.passlist.length+2]);
+        }
+        else {
+          $scope.route.passlist.push($scope.options.charging_stations[index]);
+        }
       };
 
       //초기화 함수
@@ -158,7 +163,7 @@ define([
         $scope.searchRoute(urlStr+"&format=xml");
         $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
         //detection 이벤트 타입 및 좌표 대입
-        $scope.detectionEvent(event);
+        //$scope.detectionEvent(event);
       };
 
       //경로 정보 로드
@@ -181,21 +186,21 @@ define([
       };
 
       // detection event 발생 시, 이벤트 type, 이벤트 좌표를 받아 해당 위치에 10초 뒤에 표기
-      $scope.detectionEvent = function(event) {
-        var flag = event.flag;
-        var eventType = event.type.toString();
-        var size = new Tmap.Size(50,50);
-        var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-        var eventImage = new Tmap.Icon(eventType+'.png', size, offset);
-        var eventPositionLng = event.positionLng;
-        var eventPositionLat = event.positionLat;
-        var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
-        var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-        $scope.map.addLayer(markerLayer);
-        setTimeout(function(){
-          markerLayer.addMarker(eventMarker);
-        },10000);
-      };
+      //$scope.detectionEvent = function(event) {
+      //  var flag = event.flag;
+      //  var eventType = event.type.toString();
+      //  var size = new Tmap.Size(50,50);
+      //  var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+      //  var eventImage = new Tmap.Icon(eventType+'.png', size, offset);
+      //  var eventPositionLng = event.positionLng;
+      //  var eventPositionLat = event.positionLat;
+      //  var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
+      //  var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+      //  $scope.map.addLayer(markerLayer);
+      //  setTimeout(function(){
+      //    markerLayer.addMarker(eventMarker);
+      //  },10000);
+      //};
 
       $scope.driving = function(url, src, dest, passlist) {
         var add = function (pos, driveStatus) {
@@ -328,7 +333,7 @@ define([
               searchStation(new_pos);
               $scope.searched = true;
             }
-          }, 100);
+          }, 10);
         };
 
         function searchStation(new_pos) {
@@ -346,11 +351,14 @@ define([
             var now_lat = response.data.coordinate.lat;
             var now_lng = response.data.coordinate.lon;
 
-            var stationCounter=0;
+            var stationCounter = 0;
+            var selectedEv;
+            var count = 0;
             for (var i = 0; i < $scope.options.charging_stations.length; i++) {
               var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
               if (dist < 20) {
                 stationCounter++;
+                count++;
                 var param = {
                   version: 1,
                   lat: $scope.options.charging_stations[i].lat,
@@ -363,6 +371,46 @@ define([
                   $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
                     var size = new Tmap.Size(20,20);
                     var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+                    if (count > 0) {
+                      var image = new Tmap.Icon('star20km.png', size, offset);
+                    }
+                    else {
+                      var image = new Tmap.Icon('star40km.png', size, offset);
+                    }
+                    var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+                    var marker = new Tmap.Marker(lonLat, image);
+                    var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+                    $scope.map.addLayer(markerLayer);
+                    markerLayer.addMarker(marker);
+
+                    setTimeout (function(){
+                      if (markerLayer != undefined) {
+                        markerLayer.removeMarker(marker);
+                      }
+                    },3000);
+                  });
+
+                var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
+                selectedEv = select(availEv, dist, stationCounter);
+              }
+            }
+            if (count == 0) {
+              stationCounter++;
+              for (var i = 0; i < $scope.options.charging_stations.length; i++) {
+                var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
+                if (dist < 40) {
+                  var param = {
+                    version: 1,
+                    lat: $scope.options.charging_stations[i].lat,
+                    lon: $scope.options.charging_stations[i].lng,
+                    appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+                    fromCoord: 'WGS84GEO',
+                    toCoord: 'EPSG3857',
+                    format: 'json'
+                  };
+                  $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+                    var size = new Tmap.Size(20,20);
+                    var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
                     var image = new Tmap.Icon('star.png', size, offset);
                     var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
                     var marker = new Tmap.Marker(lonLat, image);
@@ -371,27 +419,35 @@ define([
                     markerLayer.addMarker(marker);
 
                     setTimeout (function(){
-                      markerLayer.removeMarker(marker);
+                      if (markerLayer != undefined) {
+                        markerLayer.removeMarker(marker);
+                      }
                     },3000);
                   });
 
-                var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
-
-                var index = select(availEv, dist, stationCounter);
-
+                  var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
+                  selectedEv = select(availEv, dist, stationCounter);
+                }
               }
             }
+
+            function select (numChargers, dist, stationCounter) {
+              for (var i = 0; i < stationCounter; i++) {
+                var num = 0;
+                var arr = new Array();
+                arr[i] = numChargers + 0.25 * dist;
+                if (arr[i] > num)
+                  num = arr[i];
+                return i;
+              }
+            }
+
+            setTimeout (function(){
+              $scope.searched = false;
+              $scope.drivenDist = 0;
+              $scope.addPassList(selectedEv);
+            },4000);
           });
-        }
-        function select (numChargers, dist, stationCounter){
-          for (var i=0 ; i<stationCounter; i++ ){
-            var num =0;
-            var arr = new Array();
-            arr[i] = numChargers + 0.25* dist;
-            if (arr[i]>num)
-              num = arr[i];
-              return i;
-          }
         }
         //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
         function calcCrow(lat1, lon1, lat2, lon2)
@@ -456,9 +512,9 @@ define([
         console.log(event);
         switch (event.data.status) {
           case 0:
-            var size = new Tmap.Size(50,50);
+            var size = new Tmap.Size(40,40);
             var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-            var eventImage = new Tmap.Icon('fire.png', size, offset);
+            var eventImage = new Tmap.Icon('obstacle.png', size, offset);
             var eventPositionLng = event.data.lng;
             var eventPositionLat = event.data.lat;
             var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
