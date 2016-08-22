@@ -142,7 +142,21 @@ define([
       $scope.driving = function(url, src, dest, passlist) {
         var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
         map.addLayer(markerLayer);
-        vehicleFactory(src, dest, passlist, function (vehicle) {
+
+        var add = function (pos) {
+          var size = new Tmap.Size(50, 50);
+          var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
+          var icon = new Tmap.Icon('vehicle.png', size, offset);
+          var marker = new Tmap.Marker(new Tmap.LonLat(pos.lng, pos.lat), icon);
+          markerLayer.addMarker(marker);
+          return marker;
+        };
+        var removePrev = function(marker) {
+          if(marker)
+            markerLayer.removeMarker(marker);
+        };
+
+        vehicleFactory(undefined, src, dest, passlist, function (vehicle) {
           $scope.vehicle = vehicle;
           $http.get(url).then(function (response) {
             var data = response.data;
@@ -157,27 +171,21 @@ define([
                 routes.push(coordinates);
             }
             vehicle.routes = _.flatten(routes);
-            vehicle.startDrive(function (lng, lat) {
-              var size = new Tmap.Size(50, 50);
-              var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
-              var icon = new Tmap.Icon('vehicle.png', size, offset);
-              vehicle.marker = new Tmap.Marker(new Tmap.LonLat(lng, lat), icon);
-              markerLayer.addMarker(vehicle.marker);
-            }, function () {
-              if(vehicle.marker)
-              markerLayer.removeMarker(vehicle.marker);
-            });
+            vehicle.startDrive(add, removePrev);
           });
         });
 
-        function vehicleFactory(src, dest, passlist, cb) {
+        function vehicleFactory(id, src, dest, passlist, cb) {
           var new_vehicle = new Vehicle(src, dest, passlist);
-          $http.post('/Vehicle', JSON.stringify(new_vehicle)).then(function (response) {
-            new_vehicle.id = response.data.id;
-            new_vehicle.index = 0;
-            console.log('new vehicle created', new_vehicle);
+          if(!_.isUndefined(id))
             cb(new_vehicle);
-          });
+          else
+            $http.post('/Vehicle', JSON.stringify(new_vehicle)).then(function (response) {
+              new_vehicle.id = response.data.id;
+              new_vehicle.index = 0;
+              console.log('new vehicle created', new_vehicle);
+              cb(new_vehicle);
+            });
         }
 
         function Vehicle(src, dest, passlist) {
@@ -189,25 +197,31 @@ define([
         Vehicle.prototype.startDrive = function (add, removePrev) {
           var self = this;
           this.addMarkerInterval = setInterval(function () {
-            removePrev();
-            add(self.routes[self.index][0], self.routes[self.index][1]);
+            var new_pos = {lng: self.routes[self.index][0], lat: self.routes[self.index][1]};
+            self.changePosition(new_pos, add, removePrev);
             self.writeStatus();
-            if (self.index == self.routes.length - 8) {
+            if (self.index >= self.routes.length) {
               self.stopDrive();
             }
             ++self.index;
-          }, 1000);
+          }, 100);
 
         };
         Vehicle.prototype.stopDrive = function (add, remove) {
           clearInterval(this.addMarkerInterval);
         };
 
+        //TODO: 배터리 정보 추가 기입
         Vehicle.prototype.writeStatus = function() {
           $http.post('/DriveLog', {belongs:this.id, lng: this.routes[this.index][0], lat: this.routes[this.index][1]}).then(function(response) {
             console.log(response.data);
           });
         };
+
+        Vehicle.prototype.changePosition = function(new_pos, add, removePrev) {
+          removePrev(this.draw);
+          this.draw = add(new_pos);
+        }
       };
     }]);
 
