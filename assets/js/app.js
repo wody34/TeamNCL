@@ -255,7 +255,7 @@ define([
                 $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
               break;
             default:
-              //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+            //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
           }
         });
 
@@ -351,14 +351,13 @@ define([
             var now_lat = response.data.coordinate.lat;
             var now_lng = response.data.coordinate.lon;
 
-            var stationCounter = 0;
             var selectedEv;
-            var count = 0;
+            var list = [];
             for (var i = 0; i < $scope.options.charging_stations.length; i++) {
               var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
               if (dist < 20) {
-                stationCounter++;
-                count++;
+                $scope.options.charging_stations[i].dist  = dist;
+                list.push($scope.options.charging_stations[i]);
                 var param = {
                   version: 1,
                   lat: $scope.options.charging_stations[i].lat,
@@ -368,37 +367,34 @@ define([
                   toCoord: 'EPSG3857',
                   format: 'json'
                 };
-                  $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                    var size = new Tmap.Size(20,20);
-                    var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-                    if (count > 0) {
-                      var image = new Tmap.Icon('star20km.png', size, offset);
-                    }
-                    else {
-                      var image = new Tmap.Icon('star40km.png', size, offset);
-                    }
-                    var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
-                    var marker = new Tmap.Marker(lonLat, image);
-                    var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-                    $scope.map.addLayer(markerLayer);
-                    markerLayer.addMarker(marker);
+                $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+                  var size = new Tmap.Size(20,20);
+                  var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+                  if (list.length > 0) {
+                    var image = new Tmap.Icon('star20km.png', size, offset);
+                  }
+                  else {
+                    var image = new Tmap.Icon('star40km.png', size, offset);
+                  }
+                  var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+                  var marker = new Tmap.Marker(lonLat, image);
+                  var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+                  $scope.map.addLayer(markerLayer);
+                  markerLayer.addMarker(marker);
 
-                    setTimeout (function(){
-                      if (markerLayer != undefined) {
-                        markerLayer.removeMarker(marker);
-                      }
-                    },3000);
-                  });
-
-                var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
-                selectedEv = select(availEv, dist, stationCounter);
+                  setTimeout (function(){
+                    if (markerLayer != undefined) {
+                      markerLayer.removeMarker(marker);
+                    }
+                  },3000);
+                });
               }
             }
-            if (count == 0) {
-              stationCounter++;
+            if (list.length == 0) {
               for (var i = 0; i < $scope.options.charging_stations.length; i++) {
                 var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
                 if (dist < 40) {
+                  $scope.options.charging_stations[i].dist  = dist;
                   var param = {
                     version: 1,
                     lat: $scope.options.charging_stations[i].lat,
@@ -425,22 +421,24 @@ define([
                     },3000);
                   });
 
-                  var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
-                  selectedEv = select(availEv, dist, stationCounter);
                 }
               }
             }
-
-            function select (numChargers, dist, stationCounter) {
-              for (var i = 0; i < stationCounter; i++) {
-                var num = 0;
-                var arr = new Array();
-                arr[i] = numChargers + 0.25 * dist;
-                if (arr[i] > num)
-                  num = arr[i];
-                return i;
+            var a = 0.5;
+            selectedEv = (function select () {
+              var value = Number.MAX_VALUE;
+              var sel;
+              for (var i = 0; i < list.length; i++) {
+                var station = list[i];
+                var numChargers = station.evNum - station.usg;
+                var test = a*station.dist + (1-a)*numChargers;  //TODO: Important 에러 있으므로 수정 필수, 알파 값 쓰기 위해서는 normalization 필요
+                if (test < num) {
+                  num = test;
+                  sel = station;
+                }
               }
-            }
+              return sel;
+            })();
 
             setTimeout (function(){
               $scope.searched = false;
