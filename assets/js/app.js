@@ -55,7 +55,15 @@ define([
 
       $scope.vehicles = [];
 
-      $scope.$watch('route', function(newValue, oldValue) {
+      $scope.$watch('route', reroute, true);
+
+      $scope.addPassList = function(selected) {
+        $scope.route.passlist.push(selected);
+        $scope.route.src_gps = $scope.vehicle.getCurrentPosition();
+        reroute($scope.route);
+      };
+
+      function reroute(newValue, oldValue) {
         //console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined($scope.map)) {
@@ -70,17 +78,7 @@ define([
           }
           $scope.initTmap();
         }
-      }, true);
-
-      $scope.addPassList = function(index) {
-        console.log("add");
-        if (index == undefined) {
-          $scope.route.passlist.push($scope.options.charging_stations[$scope.route.passlist.length+2]);
-        }
-        else {
-          $scope.route.passlist.push($scope.options.charging_stations[index]);
-        }
-      };
+      }
 
       //초기화 함수
       $scope.initTmap = function() {
@@ -432,8 +430,8 @@ define([
                 var station = list[i];
                 var numChargers = station.evNum - station.usg;
                 var test = a*station.dist + (1-a)*numChargers;  //TODO: Important 에러 있으므로 수정 필수, 알파 값 쓰기 위해서는 normalization 필요
-                if (test < num) {
-                  num = test;
+                if (test < value) {
+                  value = test;
                   sel = station;
                 }
               }
