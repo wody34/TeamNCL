@@ -1,395 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html" charset=utf-8">
-  <title>TeamNCL</title>
-  <link href="/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/css/EVClient.css" rel="stylesheet">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-  <script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.js"></script>
-  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-  <!--<script src="/socket.io/socket.io.js"></script>-->
-  <!--<script>-->
-    <!--var socket = io.connect('http://localhost');-->
-    <!--socket.on('news', function (data) {-->
-      <!--console.log(data);-->
-      <!--socket.emit('my other event', { my: 'data' });-->
-    <!--});-->
-  <!--</script>-->
-
-  <script type="text/javascript">
-
-    var stopInterval = false;
-    var startX, startY, passList, endX, endY;
-
-    $.get("/evPos?limit=1000", function(data) {
-      var processedData = [];
-      for (var i = 0; i < data.length; i++) {
-        processedData.push (data[i].evName + "\n");
-      }
-
-      var sourceSelect = document.getElementById ("source_select");
-      while (sourceSelect.options.length > 0) {
-        sourceSelect.options.remove (0);
-      }
-      for (index in data) {
-        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].evName, index);
-      }
-
-      var stopoverSelect = document.getElementById ("stopover_select");
-      while (stopoverSelect.options.length > 0) {
-        stopoverSelect.options.remove (0);
-      }
-      for (index in data) {
-        stopoverSelect.options [stopoverSelect.options.length] = new Option (data [index].evName, index);
-      }
-
-      var destinationSelect = document.getElementById ("destination_select");
-      while (destinationSelect.options.length > 0) {
-        destinationSelect.options.remove (0);
-      }
-      for (index in data) {
-        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].evName, index);
-      }
-
-      var sourceSelectFunction = function (selectDefault) {
-        if (selectDefault == "selectDefault") {
-          startX = data [0].lng;
-          startY = data [0].lat;
-        }
-        else {
-          map.unloadDestroy();
-          stopInterval = true;
-
-          startX = data [this.selectedIndex].lng;
-          startY = data [this.selectedIndex].lat;
-
-          initTmap();
-        }
-      };
-
-      var stopoverSelectFunction = function (selectDefault) {
-        if (selectDefault == "selectDefault") {
-          route1X = data [0].lng;
-          route1Y = data [0].lat;
-
-          passList = route1X+","+route1Y+",0,G,0";
-        }
-        else {
-          map.unloadDestroy();
-          stopInterval = true;
-
-          route1X = data [this.selectedIndex].lng;
-          route1Y = data [this.selectedIndex].lat;
-
-          passList = route1X+","+route1Y+",0,G,0";
-
-          initTmap();
-        }
-      };
-
-      var destinationSelectFunction = function (selectDefault) {
-        if (selectDefault == "selectDefault") {
-          endX = data [0].lng;
-          endY = data [0].lat;
-        }
-        else {
-          map.unloadDestroy();
-          stopInterval = true;
-
-          endX = data [this.selectedIndex].lng;
-          endY = data [this.selectedIndex].lat;
-        }
-
-        initTmap();
-      };
-
-      sourceSelectFunction ("selectDefault");
-      stopoverSelectFunction ("selectDefault");
-      destinationSelectFunction ("selectDefault");
-      sourceSelect.onchange = sourceSelectFunction;
-      stopoverSelect.onchange =  stopoverSelectFunction;
-      destinationSelect.onchange = destinationSelectFunction;
-    });
-
-//    $.get("/ChargingStation?limit=1000", function(data) {
-//      var processedData = [];
-//      for (var i = 0; i < data.length; i++) {
-//        processedData.push (data[i].statNm + "\n");
-//      }
-//
-//      var sourceSelect = document.getElementById ("source_select");
-//      while (sourceSelect.options.length > 0) {
-//        sourceSelect.options.remove (0);
-//      }
-//      for (index in data) {
-//        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].statNm, index);
-//      }
-//
-//      var stopoverSelect = document.getElementById ("stopover_select");
-//      while (stopoverSelect.options.length > 0) {
-//        stopoverSelect.options.remove (0);
-//      }
-//      for (index in data) {
-//        stopoverSelect.options [stopoverSelect.options.length] = new Option (data [index].statNm, index);
-//      }
-//
-//      var destinationSelect = document.getElementById ("destination_select");
-//      while (destinationSelect.options.length > 0) {
-//        destinationSelect.options.remove (0);
-//      }
-//      for (index in data) {
-//        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].statNm, index);
-//      }
-//
-//      var sourceSelectFunction = function (selectDefault) {
-//        if (selectDefault == "selectDefault") {
-//          startX = data [0].lng;
-//          startY = data [0].lat;
-//        }
-//        else {
-//          map.unloadDestroy();
-//          stopInterval = true;
-//
-//          startX = data [this.selectedIndex].lng;
-//          startY = data [this.selectedIndex].lat;
-//
-//          initTmap();
-//        }
-//      };
-//
-//      var stopoverSelectFunction = function (selectDefault) {
-//        if (selectDefault == "selectDefault") {
-//          route1X = data [0].lng;
-//          route1Y = data [0].lat;
-//
-//          passList = route1X+","+route1Y+",0,G,0";
-//        }
-//        else {
-//          map.unloadDestroy();
-//          stopInterval = true;
-//
-//          route1X = data [this.selectedIndex].lng;
-//          route1Y = data [this.selectedIndex].lat;
-//
-//          passList = route1X+","+route1Y+",0,G,0";
-//
-//          initTmap();
-//        }
-//      };
-//
-//      var destinationSelectFunction = function (selectDefault) {
-//        if (selectDefault == "selectDefault") {
-//          endX = data [0].lng;
-//          endY = data [0].lat;
-//        }
-//        else {
-//          map.unloadDestroy();
-//          stopInterval = true;
-//
-//          endX = data [this.selectedIndex].lng;
-//          endY = data [this.selectedIndex].lat;
-//        }
-//
-//        initTmap();
-//      };
-//
-//      sourceSelectFunction ("selectDefault");
-//      stopoverSelectFunction ("selectDefault");
-//      destinationSelectFunction ("selectDefault");
-//      sourceSelect.onchange = sourceSelectFunction;
-//      stopoverSelect.onchange =  stopoverSelectFunction;
-//      destinationSelect.onchange = destinationSelectFunction;
-//    });
-
-    //초기화 함수
-    function initTmap(){
-      centerLL = new Tmap.LonLat(14145677.4, 4511257.6);
-      map = new Tmap.Map({
-        div:'map_div',
-        //width:'100%',
-        height:'800px',
-        transitionEffect:"resize",
-        animation:true
-      });
-
-      //var route1X = 126.976011;
-      //var route1Y = 37.573611;
-      //var route2X = 127.002350;
-      //var route2Y = 37.559352;
-
-      var param = {
-        version: 1,
-        startX: startX,
-        startY: startY,
-        endX: endX,
-        endY: endY,
-        passList: passList,
-        appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-        reqCoordType: 'WGS84GEO',
-        resCoordType: 'EPSG3857'
-      };
-      console.log(param.passList);
-      var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
-
-      //sample event FOR detection 이벤트 타입 및 좌표 대입
-      var event = {
-        flag: 1,
-        type: "fire",
-        positionLng:14135337.340412281,
-        positionLat:4518885.191777256
-      };
-
-
-      searchRoute(urlStr+"&format=xml");
-      marker(urlStr+"&format=json");
-      //detection 이벤트 타입 및 좌표 대입
-      detectionEvent(event);
-    }
-
-
-
-    //wifi 기준으로 현재 위치 구하기 함수
-    navigator.geolocation.getCurrentPosition(showmap);
-    function showmap(position) {
-      latitude_global = position.coords.latitude;
-      longitude_global = position.coords.longitude;
-
-      Altitude = position.coords.altitude;
-      Heading = position.coords.heading;
-    };
-
-    // 위치들 사이에 거리 구하기 (구글맵, 다음맵 좌표 기준)
-    function calcDistance(lat1, lon1, lat2, lon2)
-    {
-      var theta = lon1 - lon2;
-      dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1))
-      * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
-      dist = Math.acos(dist);
-      dist = rad2deg(dist);
-      dist = dist * 60 * 1.1515;
-      dist = dist * 1.609344;
-      return Number(dist*1000).toFixed(2);
-    }
-    function deg2rad(deg) {
-      return (deg * Math.PI / 180);
-    }
-    function rad2deg(rad) {
-      return (rad * 180 / Math.PI);
-    }
-
-//    $(document).ready(function(){
-//      var socket = io.connect('http://' + window.location.host);
-//      socket.on('test', function (updatedData) {
-//        console.log("jsonObj" + updatedData);
-//        console.log("Typeof(jsonObj) " + typeof(updatedData));
-//        var jsonObj = JSON.parse(updatedData);
-//      })
-//    });
-
-
-
-    //경로 정보 로드
-    function searchRoute(url){
-      var routeFormat = new Tmap.Format.KML({extractStyles:true, extractAttributes:true});
-
-      var prtcl = new Tmap.Protocol.HTTP({
-        url: url,
-        format:routeFormat
-      });
-
-      var routeLayer = new Tmap.Layer.Vector("route", {protocol:prtcl, strategies:[new Tmap.Strategy.Fixed()]});
-      routeLayer.events.register("featuresadded", routeLayer, onDrawnFeatures);
-      map.addLayer(routeLayer);
-    }
-    //경로 그리기 후 해당영역으로 줌
-    function onDrawnFeatures(e){
-      map.zoomToExtent(this.getDataExtent());
-    }
-
-
-    // detection event 발생 시, 이벤트 type, 이벤트 좌표를 받아 해당 위치에 10초 뒤에 표기
-    function detectionEvent(event){
-      var flag = event.flag;
-      var eventType = event.type.toString();
-      var size = new Tmap.Size(50,50);
-      var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-      var eventImage = new Tmap.Icon(eventType+'.png', size, offset);
-      var eventPositionLng = event.positionLng;
-      var eventPositionLat = event.positionLat;
-      var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
-      var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-      map.addLayer(markerLayer);
-      setTimeout(function(){
-        markerLayer.addMarker(eventMarker);
-      },10000);
-    }
-
-//    function batteryCheck(){
-//
-//    }
-//    function batteryChargerRequest(){
-//
-//    }
-//    function batteryCharger
-
-    function marker(url) {
-      var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-      map.addLayer(markerLayer);
-      $.get(url, function(data) {
-        var routes = [];
-
-        for(var i in data.features) {
-          var coordinates = data.features[i].geometry.coordinates;
-
-          if(data.features[i].geometry.type === "Point")
-            routes.push([coordinates]);
-          else
-            routes.push(coordinates);
-        }
-        routes = _.flatten(routes);
-
-        var i = 0;
-
-        var stop = false;
-        var removeMarkerInterval = null;
-
-        var addMarkerInterval = setInterval (function() {
-          if (stopInterval == true) {
-            stopInterval = false;
-            clearInterval (addMarkerInterval);
-            clearInterval (removeMarkerInterval);
-            stop = true;
-          }
-
-          if (stop == false) {
-            var size = new Tmap.Size(50,50);
-            var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-            var icon = new Tmap.Icon('vehicle.png', size, offset);
-            var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
-
-            markerLayer.addMarker(markers);
-
-            removeMarkerInterval = setInterval(function() {
-              markerLayer.removeMarker(markers);
-            }, 1100);
-
-            if (i == routes.length-8) {
-              clearInterval (addMarkerInterval);
-              clearInterval (removeMarkerInterval);
-            }
-
-            i++;
-          }
-        }, 1000);
-      });
-    }
-  </script>
+  <title>Title</title>
+  <link href= "/css/bootstrap.min.css" rel="stylesheet">
+  <link href= "/css/EVClient.css" rel="stylesheet">
 </head>
-
-<body>
+<body ng-controller="EVClient">
 <!--Top Side-->
 <nav class ="navbar navbar-default navbar-fixed-top header-nav" style="margin-bottom: 0px; background: #ffffff; " role="navigation">
   <div class="container-fluid">
@@ -410,13 +27,48 @@
 <!--Body-->
 <section style="border-bottom: 1px solid #dedede; color: #4d5360; display: block;">
   <div id="left_menu">
-    <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
-    <h5>출발지: <select id="source_select"></select><br><br></h5>
-    <h5>경유지: <select id="stopover_select"></select><br><br></h5>
-    <h5>도착지: <select id="destination_select"></select></h5>
+    <h3 style="color: #082a61;"><b>경로 설정<br></b></h3>
+
+    <!--<form>-->
+    <label>주행가능 거리 (km)</label>
+    <input type="text" id="availDist"/>
+      <!--<input type="button" value = "입력" onclick="getElement();">-->
+    <button ng-click="getElement()">입력</button><br/>
+    <!--</form><br/>-->
+
+
+    <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <h5 ng-repeat="pass in route.passlist">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <button ng-click="addPassList()">경유지 추가</button><br/>
+    <button ng-click="objectDetection()">오브젝트 발견</button><br/>
+    <input type="checkbox" ng-model="tracking"/>주행 추적<br/>
+
+    <!--<script type ="text/javascript">-->
+      <!--var availDist;-->
+      <!--function getElement(){-->
+        <!--availDist=document.getElementById("availDist");-->
+        <!--console.log(availDist.value);-->
+        <!--chargingStationSearch();-->
+      <!--}-->
+      <!--function chargingStationSearch(){-->
+        <!--var s2dDistance=100;-->
+        <!--if(availDist.value>s2dDistance){-->
+          <!--console.log( availDist.value-s2dDistance);-->
+          <!--document.write("<SELECT NAME=sltSample SIZE=1><OPTION VALUE=1>급속</OPTION><OPTION VALUE=2>완속</OPTION>  </SELECT>");-->
+        <!--}-->
+      <!--}-->
+    <!--</script>-->
+
+
 
   </div>
   <div id="map_div"></div>
 </section>
 </body>
+
+<script src="/js/dependencies/sails.io.js"></script>
+<script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96"></script>
+<script data-main="js/bootstrap" src="lib/require.js"></script>
+
 </html>
