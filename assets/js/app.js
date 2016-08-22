@@ -37,12 +37,9 @@ define([
           $scope.options.charging_stations = data;
           for (var i in $scope.options.charging_stations){
             $scope.options.charging_stations[i].usg = Math.floor(Math.random() * $scope.options.charging_stations[i].evNum);
-            //console.log("$scope.options.charging_stations[0].usg "+$scope.options.charging_stations[0].usg);
           }
           $scope.route.src_gps = $scope.options.charging_stations[0];
-          //console.log($scope.options.charging_stations[0]);
           $scope.route.dest_gps = $scope.options.charging_stations[1];
-          //console.log($scope.options.charging_stations[2]);
         });
       };
 
@@ -117,7 +114,6 @@ define([
                 var evNum = $scope.route.passlist[index].evNum;
                 var type = $scope.route.passlist[index].type;
                 var usg = $scope.route.passlist[index].usg;
-                //var usg = Math.floor(Math.random() * evNum);
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -254,7 +250,7 @@ define([
                 $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
               break;
             default:
-            //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+              //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
           }
         });
 
@@ -277,7 +273,7 @@ define([
               totalTime: data.features[0].properties.totalTime,
               timeStep: data.features[0].properties.totalTime/totalLength,
               distanceStep: data.features[0].properties.totalDistance/1000/totalLength
-            }
+            };
 
             for (var i in data.features) {
               var coordinates = data.features[i].geometry.coordinates;
@@ -329,14 +325,93 @@ define([
 
             $scope.drivenDist += self.driveStatus.distanceStep;
             if ($scope.searched == false && $scope.drivenDist >= 150) {
-              searchStation();
+              searchStation(new_pos);
               $scope.searched = true;
             }
           }, 100);
         };
 
-        function searchStation() {
-          console.log('searchstation');
+        function searchStation(new_pos) {
+          var param = {
+            version: 1,
+            lat: new_pos.lat,
+            lon: new_pos.lng,
+            appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+            fromCoord: 'EPSG3857',
+            toCoord: 'WGS84GEO',
+            format: 'json'
+          };
+
+          $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+            var now_lat = response.data.coordinate.lat;
+            var now_lng = response.data.coordinate.lon;
+
+            var stationCounter=0;
+            for (var i = 0; i < $scope.options.charging_stations.length; i++) {
+              var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
+              if (dist < 20) {
+                stationCounter++;
+                var param = {
+                  version: 1,
+                  lat: $scope.options.charging_stations[i].lat,
+                  lon: $scope.options.charging_stations[i].lng,
+                  appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+                  fromCoord: 'WGS84GEO',
+                  toCoord: 'EPSG3857',
+                  format: 'json'
+                };
+                  $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+                    var size = new Tmap.Size(20,20);
+                    var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+                    var image = new Tmap.Icon('star.png', size, offset);
+                    var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+                    var marker = new Tmap.Marker(lonLat, image);
+                    var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+                    $scope.map.addLayer(markerLayer);
+                    markerLayer.addMarker(marker);
+
+                    setTimeout (function(){
+                      markerLayer.removeMarker(marker);
+                    },3000);
+                  });
+
+                var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
+
+                var index = select(availEv, dist, stationCounter);
+
+              }
+            }
+          });
+        }
+        function select (numChargers, dist, stationCounter){
+          for (var i=0 ; i<stationCounter; i++ ){
+            var num =0;
+            var arr = new Array();
+            arr[i] = numChargers + 0.25* dist;
+            if (arr[i]>num)
+              num = arr[i];
+              return i;
+          }
+        }
+        //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
+        function calcCrow(lat1, lon1, lat2, lon2)
+        {
+          var R = 6371; // km
+          var dLat = toRad(lat2-lat1);
+          var dLon = toRad(lon2-lon1);
+          var lat1 = toRad(lat1);
+          var lat2 = toRad(lat2);
+
+          var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+          var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          var d = R * c;
+          return d;
+        }
+        // Converts numeric degrees to radians
+        function toRad(Value)
+        {
+          return Value * Math.PI / 180;
         }
 
         Vehicle.prototype.stopDrive = function () {
@@ -495,8 +570,6 @@ define([
       trackerTask.run();
 
     }]);
-
-
 
     return $app;
   }
