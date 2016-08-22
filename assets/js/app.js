@@ -80,35 +80,36 @@ define([
           }
           str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
 
-          var param = {
-            version: 1,
-            lat: $scope.route.passlist[i].lat,
-            lon: $scope.route.passlist[i].lng,
-            appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-            fromCoord: 'WGS84GEO',
-            toCoord: 'EPSG3857',
-            format: 'json'
-          };
+          for (var i = 0; i < $scope.route.passlist.length; ++i) {
+            var param = {
+              version: 1,
+              lat: $scope.route.passlist[i].lat,
+              lon: $scope.route.passlist[i].lng,
+              appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+              fromCoord: 'WGS84GEO',
+              toCoord: 'EPSG3857',
+              format: 'json'
+            };
 
-          $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-            var size = new Tmap.Size(30, 30);
-            var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
-            var icon = new Tmap.Icon('station.png', size, offset);
+            $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+              var size = new Tmap.Size(30, 30);
+              var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
+              var icon = new Tmap.Icon('station.png', size, offset);
 
-            var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat)
-            var stationMarker = new Tmap.Marker(lonLat, icon);
-            var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
-            stationMarker.events.register("click", markerLayer, function () {
-              alert("hello");
-              var popupMessage = "<ul><li>hello</li></ul>";
-              var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
-              popup.autoSize = true;
-              $scope.map.addPopup(popup);
+              var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+              var stationMarker = new Tmap.Marker(lonLat, icon);
+              var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
+              stationMarker.events.register("click", markerLayer, function () {
+                var popupMessage = "<ul><li>hello</li></ul>";
+                var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
+                popup.autoSize = true;
+                $scope.map.addPopup(popup);
+              });
+
+              $scope.map.addLayer(markerLayer);
+              markerLayer.addMarker(stationMarker);
             });
-
-            $scope.map.addLayer(markerLayer);
-            markerLayer.addMarker(stationMarker);
-          });
+          }
         }
         var param = {
           version: 1,
@@ -315,7 +316,7 @@ define([
         Vehicle.prototype.changePosition = function(new_pos, add, removePrev) {
           removePrev(this.draw);
           this.draw = add(new_pos, this.driveStatus);
-        }
+        };
 
         Vehicle.prototype.terminate = function() {
           removePrev(this.draw);
