@@ -102,7 +102,6 @@ define([
           positionLat:4518885.191777256
         };
 
-
         $scope.searchRoute(urlStr+"&format=xml");
         $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
         //detection 이벤트 타입 및 좌표 대입
@@ -168,10 +167,14 @@ define([
         };
         var removePrev = function(draw) {
           if(draw) {
-            if(draw.marker)
+            if(draw.marker) {
               markerLayer.removeMarker(draw.marker);
-            if(draw.popup)
+              delete draw.marker;
+            }
+            if(draw.popup) {
               map.removePopup(draw.popup);
+              delete draw.popup;
+            }
           }
         };
 
@@ -283,6 +286,10 @@ define([
         Vehicle.prototype.changePosition = function(new_pos, add, removePrev) {
           removePrev(this.draw);
           this.draw = add(new_pos, this.driveStatus);
+        }
+
+        Vehicle.prototype.terminate = function() {
+          removePrev(this.draw);
         }
       };
     }]);
