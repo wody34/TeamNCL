@@ -15,13 +15,12 @@ define([
       console.log("EVClient Activated");
 
       // io.socket.on('connect', function(){
-      io.socket.get('/obstacle/subscribe', function(resData, a) {
+      io.socket.get('/DriveLog/subscribe', function(resData, a) {
         console.log('obstable', resData);
       });
-      // });
 
       var map;
-      var stopInterval = false;
+
       $scope.route = {
         passlist: []
       };
@@ -30,10 +29,12 @@ define([
         charging_stations: []
       };
 
+      $scope.vehicles = [];
+
       $http.get("/EvPos?limit=1000").then(function(response) {
         var data = response.data;
-        //console.log(data);
-        //console.log(data.length);
+        console.log(data);
+        console.log(data.length);
         $scope.options.charging_stations = data;
         $scope.route.src_gps = $scope.options.charging_stations[0];
         $scope.route.dest_gps = $scope.options.charging_stations[1];
@@ -43,8 +44,14 @@ define([
         console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined(map)) {
+            $scope.vehicle.stopDrive();
+            $scope.vehicle.terminate();
+            delete $scope.vehicle;
+            while($scope.vehicles.length > 0) {
+              var v1 = $scope.vehicles.pop();
+              v1.terminate();
+            }
             map.unloadDestroy();
-            stopInterval = true;
           }
           $scope.initTmap();
         }
@@ -141,19 +148,62 @@ define([
       $scope.driving = function(url, src, dest, passlist) {
         var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
         map.addLayer(markerLayer);
-        vehicleFactory(src, dest, passlist, function (vehicle) {
+
+        var add = function (pos, driveStatus) {
+          var size = new Tmap.Size(50, 50);
+          var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
+          var icon = new Tmap.Icon('vehicle.png', size, offset);
+          var marker = new Tmap.Marker(new Tmap.LonLat(pos.lng, pos.lat), icon);
+          markerLayer.addMarker(marker);
+
+          if(driveStatus) {
+            var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+driveStatus.totalDistance+"km</li><li>예상 소요시간: "+driveStatus.totalTime+"s</li></ul>";
+            var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
+            popup.autoSize = true;
+            map.addPopup(popup);
+            return {marker: marker, popup: popup};
+          }
+          else
+            return {marker: marker};
+        };
+        var removePrev = function(draw) {
+          if(draw) {
+            if(draw.marker)
+              markerLayer.removeMarker(draw.marker);
+            if(draw.popup)
+              map.removePopup(draw.popup);
+          }
+        };
+
+        io.socket.on('drivelog', function(event) {
+          console.log(event);
+          switch (event.verb) {
+            case 'created':
+              console.log(event.data.belongs);
+              if($scope.vehicle && event.data.belongs === $scope.vehicle.id)
+                return;
+              if(_.isUndefined($scope.vehicles[event.data.belongs]))
+              //create new vehicle
+                vehicleFactory(event.data.belongs, undefined, undefined, undefined, function(vehicle) {
+                  $scope.vehicles[event.data.belongs] = vehicle;
+                  vehicle.changePosition(event.data, add, removePrev)
+                });
+              else
+                $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
+              break;
+
+            default:
+              console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+          }
+        });
+
+        vehicleFactory(undefined, src, dest, passlist, function (vehicle) {
           $scope.vehicle = vehicle;
           $http.get(url).then(function (response) {
             var data = response.data;
             var routes = [];
-            var totalDistance = data.features[0].properties.totalDistance/1000;
-            var totalTime = data.features[0].properties.totalTime;
-
             var totalLength =0;
             for (var i in data.features) {
-              //for (var j in data.features[i].geometry.coordinates) {
-              // console.log(data.features[i].geometry.coordinates[j].length);
-              //console.log(data);
               if(data.features[i].geometry.coordinates.length==2){
                 totalLength +=1
               }
@@ -161,8 +211,12 @@ define([
                 totalLength += data.features[i].geometry.coordinates.length;
               }
             }
-            var timeStep = totalTime/totalLength;
-            var distanceStep = totalDistance/totalLength;
+            vehicle.driveStatus = {
+              totalDistance: data.features[0].properties.totalDistance/1000,
+              totalTime: data.features[0].properties.totalTime,
+              timeStep: data.features[0].properties.totalTime/totalLength,
+              distanceStep: data.features[0].properties.totalDistance/1000/totalLength
+            }
 
             for (var i in data.features) {
               var coordinates = data.features[i].geometry.coordinates;
@@ -173,37 +227,21 @@ define([
                 routes.push(coordinates);
             }
             vehicle.routes = _.flatten(routes);
-            vehicle.startDrive(function (lng, lat) {
-              var size = new Tmap.Size(50, 50);
-              var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
-              var icon = new Tmap.Icon('vehicle.png', size, offset);
-              vehicle.marker = new Tmap.Marker(new Tmap.LonLat(lng, lat), icon);
-              markerLayer.addMarker(vehicle.marker);
-
-              totalTime-=timeStep;
-              totalDistance-=distanceStep;
-              var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+totalDistance+"km</li><li>예상 소요시간: "+totalTime+"s</li></ul>";
-              var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(lng, lat), new Tmap.Size(100,20), popupMessage, false);
-              popup.autoSize = true;
-              map.addPopup(popup);
-              setTimeout(function() {
-                map.removePopup(popup);
-              }, 100);
-            }, function () {
-              if(vehicle.marker)
-              markerLayer.removeMarker(vehicle.marker);
-            });
+            vehicle.startDrive(add, removePrev);
           });
         });
 
-        function vehicleFactory(src, dest, passlist, cb) {
+        function vehicleFactory(id, src, dest, passlist, cb) {
           var new_vehicle = new Vehicle(src, dest, passlist);
-          $http.post('/Vehicle', JSON.stringify(new_vehicle)).then(function (response) {
-            new_vehicle.id = response.data.id;
-            new_vehicle.index = 0;
-            console.log('new vehicle created', new_vehicle);
+          if(!_.isUndefined(id))
             cb(new_vehicle);
-          });
+          else
+            $http.post('/Vehicle', angular.toJson(new_vehicle)).then(function (response) {
+              new_vehicle.id = response.data.id;
+              new_vehicle.index = 0;
+              console.log('new vehicle created', new_vehicle);
+              cb(new_vehicle);
+            });
         }
 
         function Vehicle(src, dest, passlist) {
@@ -213,27 +251,39 @@ define([
         }
 
         Vehicle.prototype.startDrive = function (add, removePrev) {
+          console.log('startstart');
           var self = this;
           this.addMarkerInterval = setInterval(function () {
-            removePrev();
-            add(self.routes[self.index][0], self.routes[self.index][1]);
+            var new_pos = {lng: self.routes[self.index][0], lat: self.routes[self.index][1]};
+            self.driveStatus.totalDistance -= self.driveStatus.distanceStep;
+            self.driveStatus.totalTime -= self.driveStatus.timeStep;
+            self.changePosition(new_pos, add, removePrev);
             self.writeStatus();
-            if (self.index == self.routes.length - 8) {
+            console.log(self.index, self.routes.length);
+            if (++self.index >= self.routes.length) {
               self.stopDrive();
             }
-            ++self.index;
           }, 100);
 
         };
-        Vehicle.prototype.stopDrive = function (add, remove) {
+
+        Vehicle.prototype.stopDrive = function () {
+          console.log('stop driving');
           clearInterval(this.addMarkerInterval);
+          delete this.addMarkerInterval;
         };
 
+        //TODO: 배터리 정보 추가 기입
         Vehicle.prototype.writeStatus = function() {
           $http.post('/DriveLog', {belongs:this.id, lng: this.routes[this.index][0], lat: this.routes[this.index][1]}).then(function(response) {
-            //console.log(response.data);
+            console.log(response.data);
           });
         };
+
+        Vehicle.prototype.changePosition = function(new_pos, add, removePrev) {
+          removePrev(this.draw);
+          this.draw = add(new_pos, this.driveStatus);
+        }
       };
     }]);
 
