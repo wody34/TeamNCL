@@ -28,14 +28,12 @@
   <script type="text/javascript">
 
     var stopInterval = false;
-    var startX, startY, endX, endY;
+    var startX, startY, passList, endX, endY;
 
-    $.get("/ChargingStation?limit=1000", function(data) {
-      console.log(data);
-      console.log(data.length);
+    $.get("/evPos", function(data) {
       var processedData = [];
       for (var i = 0; i < data.length; i++) {
-        processedData.push (data[i].statNm + "\n");
+        processedData.push (data[i].evName + "\n");
       }
 
       var sourceSelect = document.getElementById ("source_select");
@@ -43,7 +41,15 @@
         sourceSelect.options.remove (0);
       }
       for (index in data) {
-        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].statNm, index);
+        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].evName, index);
+      }
+
+      var stopoverSelect = document.getElementById ("stopover_select");
+      while (stopoverSelect.options.length > 0) {
+        stopoverSelect.options.remove (0);
+      }
+      for (index in data) {
+        stopoverSelect.options [stopoverSelect.options.length] = new Option (data [index].evName, index);
       }
 
       var destinationSelect = document.getElementById ("destination_select");
@@ -51,7 +57,7 @@
         destinationSelect.options.remove (0);
       }
       for (index in data) {
-        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].statNm, index);
+        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].evName, index);
       }
 
       var sourceSelectFunction = function (selectDefault) {
@@ -65,6 +71,26 @@
 
           startX = data [this.selectedIndex].lng;
           startY = data [this.selectedIndex].lat;
+
+          initTmap();
+        }
+      };
+
+      var stopoverSelectFunction = function (selectDefault) {
+        if (selectDefault == "selectDefault") {
+          route1X = data [0].lng;
+          route1Y = data [0].lat;
+
+          passList = route1X+","+route1Y+",0,G,0";
+        }
+        else {
+          map.unloadDestroy();
+          stopInterval = true;
+
+          route1X = data [this.selectedIndex].lng;
+          route1Y = data [this.selectedIndex].lat;
+
+          passList = route1X+","+route1Y+",0,G,0";
 
           initTmap();
         }
@@ -87,10 +113,102 @@
       };
 
       sourceSelectFunction ("selectDefault");
+      stopoverSelectFunction ("selectDefault");
       destinationSelectFunction ("selectDefault");
       sourceSelect.onchange = sourceSelectFunction;
+      stopoverSelect.onchange =  stopoverSelectFunction;
       destinationSelect.onchange = destinationSelectFunction;
     });
+
+//    $.get("/ChargingStation?limit=1000", function(data) {
+//      var processedData = [];
+//      for (var i = 0; i < data.length; i++) {
+//        processedData.push (data[i].statNm + "\n");
+//      }
+//
+//      var sourceSelect = document.getElementById ("source_select");
+//      while (sourceSelect.options.length > 0) {
+//        sourceSelect.options.remove (0);
+//      }
+//      for (index in data) {
+//        sourceSelect.options [sourceSelect.options.length] = new Option (data [index].statNm, index);
+//      }
+//
+//      var stopoverSelect = document.getElementById ("stopover_select");
+//      while (stopoverSelect.options.length > 0) {
+//        stopoverSelect.options.remove (0);
+//      }
+//      for (index in data) {
+//        stopoverSelect.options [stopoverSelect.options.length] = new Option (data [index].statNm, index);
+//      }
+//
+//      var destinationSelect = document.getElementById ("destination_select");
+//      while (destinationSelect.options.length > 0) {
+//        destinationSelect.options.remove (0);
+//      }
+//      for (index in data) {
+//        destinationSelect.options [destinationSelect.options.length] = new Option (data [index].statNm, index);
+//      }
+//
+//      var sourceSelectFunction = function (selectDefault) {
+//        if (selectDefault == "selectDefault") {
+//          startX = data [0].lng;
+//          startY = data [0].lat;
+//        }
+//        else {
+//          map.unloadDestroy();
+//          stopInterval = true;
+//
+//          startX = data [this.selectedIndex].lng;
+//          startY = data [this.selectedIndex].lat;
+//
+//          initTmap();
+//        }
+//      };
+//
+//      var stopoverSelectFunction = function (selectDefault) {
+//        if (selectDefault == "selectDefault") {
+//          route1X = data [0].lng;
+//          route1Y = data [0].lat;
+//
+//          passList = route1X+","+route1Y+",0,G,0";
+//        }
+//        else {
+//          map.unloadDestroy();
+//          stopInterval = true;
+//
+//          route1X = data [this.selectedIndex].lng;
+//          route1Y = data [this.selectedIndex].lat;
+//
+//          passList = route1X+","+route1Y+",0,G,0";
+//
+//          initTmap();
+//        }
+//      };
+//
+//      var destinationSelectFunction = function (selectDefault) {
+//        if (selectDefault == "selectDefault") {
+//          endX = data [0].lng;
+//          endY = data [0].lat;
+//        }
+//        else {
+//          map.unloadDestroy();
+//          stopInterval = true;
+//
+//          endX = data [this.selectedIndex].lng;
+//          endY = data [this.selectedIndex].lat;
+//        }
+//
+//        initTmap();
+//      };
+//
+//      sourceSelectFunction ("selectDefault");
+//      stopoverSelectFunction ("selectDefault");
+//      destinationSelectFunction ("selectDefault");
+//      sourceSelect.onchange = sourceSelectFunction;
+//      stopoverSelect.onchange =  stopoverSelectFunction;
+//      destinationSelect.onchange = destinationSelectFunction;
+//    });
 
     //초기화 함수
     function initTmap(){
@@ -103,10 +221,10 @@
         animation:true
       });
 
-      var route1X = 126.976011;
-      var route1Y = 37.573611;
-      var route2X = 127.002350;
-      var route2Y = 37.559352;
+      //var route1X = 126.976011;
+      //var route1Y = 37.573611;
+      //var route2X = 127.002350;
+      //var route2Y = 37.559352;
 
       var param = {
         version: 1,
@@ -114,7 +232,7 @@
         startY: startY,
         endX: endX,
         endY: endY,
-        passList: route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0",
+        passList: passList,
         appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
         reqCoordType: 'WGS84GEO',
         resCoordType: 'EPSG3857'
@@ -249,6 +367,7 @@
   <div id="left_menu">
     <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
     <h5>출발지: <select id="source_select"></select><br><br></h5>
+    <h5>경유지: <select id="stopover_select"></select><br><br></h5>
     <h5>도착지: <select id="destination_select"></select></h5>
 
   </div>
