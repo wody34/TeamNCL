@@ -2,13 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Type" content="text/html" charset=utf-8">
   <title>TeamNCL</title>
   <link href="/css/bootstrap.min.css" rel="stylesheet">
   <link href="/css/EVClient.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.js"></script>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+  <!--<script src="/socket.io/socket.io.js"></script>-->
+  <!--<script>-->
+    <!--var socket = io.connect('http://localhost');-->
+    <!--socket.on('news', function (data) {-->
+      <!--console.log(data);-->
+      <!--socket.emit('my other event', { my: 'data' });-->
+    <!--});-->
+  <!--</script>-->
 
   <script type="text/javascript">
 
@@ -239,6 +248,49 @@
       //detection 이벤트 타입 및 좌표 대입
       detectionEvent(event);
     }
+
+
+
+    //wifi 기준으로 현재 위치 구하기 함수
+    navigator.geolocation.getCurrentPosition(showmap);
+    function showmap(position) {
+      latitude_global = position.coords.latitude;
+      longitude_global = position.coords.longitude;
+
+      Altitude = position.coords.altitude;
+      Heading = position.coords.heading;
+    };
+
+    // 위치들 사이에 거리 구하기 (구글맵, 다음맵 좌표 기준)
+    function calcDistance(lat1, lon1, lat2, lon2)
+    {
+      var theta = lon1 - lon2;
+      dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1))
+      * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+      dist = Math.acos(dist);
+      dist = rad2deg(dist);
+      dist = dist * 60 * 1.1515;
+      dist = dist * 1.609344;
+      return Number(dist*1000).toFixed(2);
+    }
+    function deg2rad(deg) {
+      return (deg * Math.PI / 180);
+    }
+    function rad2deg(rad) {
+      return (rad * 180 / Math.PI);
+    }
+
+//    $(document).ready(function(){
+//      var socket = io.connect('http://' + window.location.host);
+//      socket.on('test', function (updatedData) {
+//        console.log("jsonObj" + updatedData);
+//        console.log("Typeof(jsonObj) " + typeof(updatedData));
+//        var jsonObj = JSON.parse(updatedData);
+//      })
+//    });
+
+
+
     //경로 정보 로드
     function searchRoute(url){
       var routeFormat = new Tmap.Format.KML({extractStyles:true, extractAttributes:true});
@@ -274,6 +326,14 @@
         markerLayer.addMarker(eventMarker);
       },10000);
     }
+
+//    function batteryCheck(){
+//
+//    }
+//    function batteryChargerRequest(){
+//
+//    }
+//    function batteryCharger
 
     function marker(url) {
       var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );

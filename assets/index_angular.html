@@ -27,11 +27,40 @@
 <!--Body-->
 <section style="border-bottom: 1px solid #dedede; color: #4d5360; display: block;">
   <div id="left_menu">
-    <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
-    <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/><br/></h5>
-    <h5 ng-repeat="pass in route.passlist track by $index">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/><br/></h5>
-    <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/><br/></h5>
-    <button ng-click="addPassList()">경유지 추가</button>
+    <h3 style="color: #082a61;"><b>경로 설정<br></b></h3>
+
+    <!--<form>-->
+    <label>주행가능 거리 (km)</label>
+    <input type="text" id="availDist"/>
+      <!--<input type="button" value = "입력" onclick="getElement();">-->
+    <button ng-click="getElement()">입력</button><br/>
+    <!--</form><br/>-->
+
+
+    <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <h5 ng-repeat="pass in route.passlist track by $index">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select></h5>
+    <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <button ng-click="addPassList()">경유지 추가</button><br/>
+
+
+    <!--<script type ="text/javascript">-->
+      <!--var availDist;-->
+      <!--function getElement(){-->
+        <!--availDist=document.getElementById("availDist");-->
+        <!--console.log(availDist.value);-->
+        <!--chargingStationSearch();-->
+      <!--}-->
+      <!--function chargingStationSearch(){-->
+        <!--var s2dDistance=100;-->
+        <!--if(availDist.value>s2dDistance){-->
+          <!--console.log( availDist.value-s2dDistance);-->
+          <!--document.write("<SELECT NAME=sltSample SIZE=1><OPTION VALUE=1>급속</OPTION><OPTION VALUE=2>완속</OPTION>  </SELECT>");-->
+        <!--}-->
+      <!--}-->
+    <!--</script>-->
+
+
+
   </div>
   <div id="map_div"></div>
 </section>
