@@ -1,0 +1,15 @@
+
+#left_menu {
+  float: left;
+  width: 220px;
+  margin: 0;
+  padding: 1em;
+}
+
+#map_div {
+  margin-left: 220px;
+  border-left: 2px solid gray;
+  padding: 1em;
+  overflow: hidden;
+}
+
