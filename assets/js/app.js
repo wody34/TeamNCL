@@ -277,6 +277,8 @@ define([
             var new_pos = {lng: self.routes[self.index][0], lat: self.routes[self.index][1]};
             self.driveStatus.totalDistance -= self.driveStatus.distanceStep;
             self.driveStatus.totalTime -= self.driveStatus.timeStep;
+            if (self.driveStatus.totalDistance <= 0) self.driveStatus.totalDistance = 0;
+            if (self.driveStatus.totalTime <= 0) self.driveStatus.totalTime = 0;
             self.changePosition(new_pos, add, removePrev);
             self.writeStatus();
             console.log(self.index, self.routes.length);
