@@ -16,74 +16,42 @@ define([
 
       var map;
       var stopInterval = false;
-      var startX, startY, endX, endY;
+      $scope.route = {
+        passlist: []
+      };
+
+      $scope.options = {
+        charging_stations: [],
+        dest_charging_stations: []
+      };
 
       $http.get("/ChargingStation?limit=1000").then(function(response) {
         var data = response.data;
         console.log(data);
         console.log(data.length);
-        var processedData = [];
-        for (var i = 0; i < data.length; i++) {
-          processedData.push (data[i].statNm + "\n");
-        }
-
-        var sourceSelect = document.getElementById ("source_select");
-        while (sourceSelect.options.length > 0) {
-          sourceSelect.options.remove (0);
-        }
-        for (var index in data) {
-          sourceSelect.options [sourceSelect.options.length] = new Option (data [index].statNm, index);
-        }
-
-        var destinationSelect = document.getElementById ("destination_select");
-        while (destinationSelect.options.length > 0) {
-          destinationSelect.options.remove (0);
-        }
-        for (var index in data) {
-          destinationSelect.options [destinationSelect.options.length] = new Option (data [index].statNm, index);
-        }
-
-        var sourceSelectFunction = function (selectDefault) {
-          if (selectDefault == "selectDefault") {
-            startX = data [0].lng;
-            startY = data [0].lat;
-          }
-          else {
-            map.unloadDestroy();
-            stopInterval = true;
-
-            startX = data [this.selectedIndex].lng;
-            startY = data [this.selectedIndex].lat;
-
-            $scope.initTmap();
-          }
-        };
-
-        var destinationSelectFunction = function (selectDefault) {
-          if (selectDefault == "selectDefault") {
-            endX = data [0].lng;
-            endY = data [0].lat;
-          }
-          else {
-            map.unloadDestroy();
-            stopInterval = true;
-
-            endX = data [this.selectedIndex].lng;
-            endY = data [this.selectedIndex].lat;
-          }
-
-          $scope.initTmap();
-        };
-
-        sourceSelectFunction ("selectDefault");
-        destinationSelectFunction ("selectDefault");
-        sourceSelect.onchange = sourceSelectFunction;
-        destinationSelect.onchange = sourceSelectFunction;
+        $scope.options.charging_stations = data;
+        $scope.route.src_gps = $scope.options.charging_stations[0];
+        $scope.route.dest_gps = $scope.options.charging_stations[1];
       });
+
+      $scope.$watch('route', function(newValue, oldValue) {
+        console.log('src', $scope.options.src_charging_stations);
+        console.log('value changed', newValue, oldValue);
+        if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
+          if(!_.isUndefined(map))
+            map.unloadDestroy();
+          stopInterval = true;
+          $scope.initTmap();
+        }
+      }, true);
+
+      $scope.addPassList = function() {
+        console.log("add");
+        $scope.route.passlist.push($scope.options.charging_stations[$scope.route.passlist.length+2]);
+      };
 
       //초기화 함수
       $scope.initTmap = function() {
-        var centerLL = new Tmap.LonLat(14145677.4, 4511257.6);
         map = new Tmap.Map({
           div:'map_div',
           //width:'100%',
@@ -93,21 +61,32 @@ define([
         });
 
         var route1X = 126.976011;
-        var route1Y = 37.573611;
-        var route2X = 127.002350;
+        var route1Y = 37.5736110;
+        var route2X = 126.995880;
         var route2Y = 37.559352;
-
+        if($scope.route.passlist.length > 0) {}
+        var str = "";
+        if($scope.route.passlist.length > 0) {
+          for (var i = 0; i < $scope.route.passlist.length - 1; ++i) {
+            var pass = $scope.route.passlist[i];
+            str += pass.lng + "," + pass.lat + ",0,0,0_"
+          }
+          str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
+        }
         var param = {
           version: 1,
-          startX: startX,
-          startY: startY,
-          endX: endX,
-          endY: endY,
-          passList: route1X+","+route1Y+",0,0,0_"+route2X+","+route2Y+",0,G,0",
+          startX: $scope.route.src_gps.lng,
+          startY: $scope.route.src_gps.lat,
+          endX: $scope.route.dest_gps.lng,
+          endY: $scope.route.dest_gps.lat,
+          passList: str,
           appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
           reqCoordType: 'WGS84GEO',
           resCoordType: 'EPSG3857'
         };
+
+
+        console.log('param', param)
 
         var urlStr = "https://apis.skplanetx.com/tmap/routes?" + $.param(param, true);
 

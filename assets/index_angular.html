@@ -28,9 +28,10 @@
 <section style="border-bottom: 1px solid #dedede; color: #4d5360; display: block;">
   <div id="left_menu">
     <h3 style="color: #082a61;"><b>경로 설정<br><br></b></h3>
-    <h5>출발지: <select id="source_select"></select><br><br></h5>
-    <h5>도착지: <select id="destination_select"></select></h5>
-
+    <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.statNm for option in options.charging_stations"></select><br><br></h5>
+    <h5 ng-repeat="pass in route.passlist track by $index">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.statNm for option in options.charging_stations"></select><br><br></h5>
+    <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.statNm for option in options.charging_stations"></select></h5>
+    <button ng-click="addPassList()">경유지 추가</button>
   </div>
   <div id="map_div"></div>
 </section>
