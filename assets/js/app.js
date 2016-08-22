@@ -11,8 +11,15 @@ define([
     //모듈 선언
     var $app = angular.module('TeamNCL', []);
 
-    $app.controller('EVClient', ['$scope', '$http', function($scope, $http){
+    $app.controller('EVClient', ['$scope', '$http', function($scope, $http) {
       console.log("EVClient Activated");
+
+      // io.socket.on('connect', function(){
+      io.socket.get('/obstacle/subscribe', function(resData, a) {
+        console.log('obstable', resData);
+      });
+      // });
+
 
       var map;
       var stopInterval = false;
@@ -91,7 +98,7 @@ define([
 
 
         $scope.searchRoute(urlStr+"&format=xml");
-        $scope.marker(urlStr+"&format=json");
+        $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
         //detection 이벤트 타입 및 좌표 대입
         $scope.detectionEvent(event);
       };
@@ -130,63 +137,81 @@ define([
         setTimeout(function(){
           markerLayer.addMarker(eventMarker);
         },10000);
-      }
+      };
 
-      $scope.marker = function(url) {
-        var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+      $scope.driving = function(url, src, dest, passlist) {
+        var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
         map.addLayer(markerLayer);
-        $http.get(url).then(function(response) {
-          var data = response.data;
-          var routes = [];
+        vehicleFactory(src, dest, passlist, function (vehicle) {
+          $scope.vehicle = vehicle;
+          $http.get(url).then(function (response) {
+            var data = response.data;
+            var routes = [];
 
-          for(var i in data.features) {
-            var coordinates = data.features[i].geometry.coordinates;
+            for (var i in data.features) {
+              var coordinates = data.features[i].geometry.coordinates;
 
-            if(data.features[i].geometry.type === "Point")
-              routes.push([coordinates]);
-            else
-              routes.push(coordinates);
-          }
-          routes = _.flatten(routes);
-
-          var i = 0;
-          console.log(routes);
-
-          var stop = false;
-          var removeMarkerInterval = null;
-
-          var addMarkerInterval = setInterval (function() {
-            if (stopInterval == true) {
-              stopInterval = false;
-              clearInterval (addMarkerInterval);
-              clearInterval (removeMarkerInterval);
-              stop = true;
+              if (data.features[i].geometry.type === "Point")
+                routes.push([coordinates]);
+              else
+                routes.push(coordinates);
             }
-
-            if (stop == false) {
-              var size = new Tmap.Size(50,50);
-              var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+            vehicle.routes = _.flatten(routes);
+            vehicle.startDrive(function (lng, lat) {
+              var size = new Tmap.Size(50, 50);
+              var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
               var icon = new Tmap.Icon('vehicle.png', size, offset);
-              var markers = new Tmap.Marker(new Tmap.LonLat(routes[i][0], routes[i][1]), icon);
-
-              markerLayer.addMarker(markers);
-
-              removeMarkerInterval = setInterval(function() {
-                markerLayer.removeMarker(markers);
-              }, 1100);
-
-              if (i == routes.length-8) {
-                clearInterval (addMarkerInterval);
-                clearInterval (removeMarkerInterval);
-              }
-
-              i++;
-            }
-          }, 1000);
+              vehicle.marker = new Tmap.Marker(new Tmap.LonLat(lng, lat), icon);
+              markerLayer.addMarker(vehicle.marker);
+            }, function () {
+              if(vehicle.marker)
+              markerLayer.removeMarker(vehicle.marker);
+            });
+          });
         });
-      }
+
+        function vehicleFactory(src, dest, passlist, cb) {
+          var new_vehicle = new Vehicle(src, dest, passlist);
+          $http.post('/Vehicle', JSON.stringify(new_vehicle)).then(function (response) {
+            new_vehicle.id = response.data.id;
+            new_vehicle.index = 0;
+            console.log('new vehicle created', new_vehicle);
+            cb(new_vehicle);
+          });
+        }
+
+        function Vehicle(src, dest, passlist) {
+          this.src = src;
+          this.dest = dest;
+          this.passlist = passlist;
+        }
+
+        Vehicle.prototype.startDrive = function (add, removePrev) {
+          var self = this;
+          this.addMarkerInterval = setInterval(function () {
+            removePrev();
+            add(self.routes[self.index][0], self.routes[self.index][1]);
+            self.writeStatus();
+            if (self.index == self.routes.length - 8) {
+              self.stopDrive();
+            }
+            ++self.index;
+          }, 1000);
+
+        };
+        Vehicle.prototype.stopDrive = function (add, remove) {
+          clearInterval(this.addMarkerInterval);
+        };
+
+        Vehicle.prototype.writeStatus = function() {
+          $http.post('/DriveLog', {belongs:this.id, lng: this.routes[this.index][0], lat: this.routes[this.index][1]}).then(function(response) {
+            console.log(response.data);
+          });
+        };
+      };
     }]);
 
     return $app;
   }
 );
+

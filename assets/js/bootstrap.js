@@ -9,6 +9,7 @@ requirejs.config({
     // 'tmap': 'https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96',
     'angular': '/lib/angular.min',
     'lodash': '/lib/lodash.min',
+    'sails.io': '/js/dependencies/sails.io'
   },
   shim:{
     'angular':{
@@ -17,6 +18,9 @@ requirejs.config({
     },
     'lodash': {
       exports: '_'
+    },
+    'sails.io': {
+      exports: 'io'
     },
     'app':{
       deps:[
