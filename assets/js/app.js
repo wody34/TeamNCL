@@ -16,7 +16,7 @@ define([
 
       // io.socket.on('connect', function(){
       io.socket.get('/DriveLog/subscribe', function(resData, a) {
-        console.log('obstable', resData);
+        //console.log('obstable', resData);
       });
 
       $scope.route = {
@@ -31,15 +31,15 @@ define([
 
       $http.get("/EvPos?limit=1000").then(function(response) {
         var data = response.data;
-        console.log(data);
-        console.log(data.length);
+        //console.log(data);
+        //console.log(data.length);
         $scope.options.charging_stations = data;
         $scope.route.src_gps = $scope.options.charging_stations[0];
         $scope.route.dest_gps = $scope.options.charging_stations[1];
       });
 
       $scope.$watch('route', function(newValue, oldValue) {
-        console.log('value changed', newValue, oldValue);
+        //console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined($scope.map)) {
             $scope.vehicle.stopDrive();
@@ -81,6 +81,10 @@ define([
           str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
 
           for (var i = 0; i < $scope.route.passlist.length; ++i) {
+            var evName = $scope.route.passlist[i].evName;
+            var evNum = $scope.route.passlist[i].evNum;
+            var type = $scope.route.passlist[i].type;
+
             var param = {
               version: 1,
               lat: $scope.route.passlist[i].lat,
@@ -95,12 +99,11 @@ define([
               var size = new Tmap.Size(30, 30);
               var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
               var icon = new Tmap.Icon('station.png', size, offset);
-
               var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
               var stationMarker = new Tmap.Marker(lonLat, icon);
               var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
               stationMarker.events.register("click", markerLayer, function () {
-                var popupMessage = "<ul><li>hello</li></ul>";
+                var popupMessage = "<ul><li>충전소: "+evName+"</li><li>충전 유형: "+type+"</li><li>보유 충전기: "+evNum+"대</li></ul>";
                 var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
                 popup.autoSize = true;
                 $scope.map.addPopup(popup);
@@ -208,16 +211,16 @@ define([
         };
 
         io.socket.on('drivelog', function(event) {
-          console.log(event);
+          //console.log(event);
           switch (event.verb) {
             case 'created':
-              console.log(event.data.belongs);
+              //console.log(event.data.belongs);
               if($scope.vehicle && event.data.belongs === $scope.vehicle.id)
                 return;
               if(_.isUndefined($scope.vehicles[event.data.belongs]))
               //create new vehicle
                 vehicleFactory(event.data.belongs, undefined, undefined, undefined, function(vehicle) {
-                  console.log('주변 차량 생성', event.data.belongs, $scope.map);
+                  //console.log('주변 차량 생성', event.data.belongs, $scope.map);
                   $scope.vehicles[event.data.belongs] = vehicle;
                   vehicle.changePosition(event.data, add, removePrev)
                 });
@@ -225,7 +228,7 @@ define([
                 $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
               break;
             default:
-              console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+              //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
           }
         });
 
@@ -271,7 +274,7 @@ define([
             $http.post('/Vehicle', angular.toJson(new_vehicle)).then(function (response) {
               new_vehicle.id = response.data.id;
               new_vehicle.index = 0;
-              console.log('new vehicle created', new_vehicle);
+              //console.log('new vehicle created', new_vehicle);
               cb(new_vehicle);
             });
         }
@@ -293,7 +296,7 @@ define([
             if (self.driveStatus.totalTime <= 0) self.driveStatus.totalTime = 0;
             self.changePosition(new_pos, add, removePrev);
             self.writeStatus();
-            console.log(self.index, self.routes.length);
+            //console.log(self.index, self.routes.length);
             if (++self.index >= self.routes.length) {
               self.stopDrive();
             }
@@ -310,7 +313,7 @@ define([
         //TODO: 배터리 정보 추가 기입
         Vehicle.prototype.writeStatus = function() {
           $http.post('/DriveLog', {belongs:this.id, lng: this.routes[this.index][0], lat: this.routes[this.index][1]}).then(function(response) {
-            console.log(response.data);
+            //console.log(response.data);
           });
         };
 
