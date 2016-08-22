@@ -19,8 +19,6 @@ define([
         console.log('obstable', resData);
       });
 
-      var map;
-
       $scope.route = {
         passlist: []
       };
@@ -43,7 +41,7 @@ define([
       $scope.$watch('route', function(newValue, oldValue) {
         console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
-          if(!_.isUndefined(map)) {
+          if(!_.isUndefined($scope.map)) {
             $scope.vehicle.stopDrive();
             $scope.vehicle.terminate();
             delete $scope.vehicle;
@@ -51,7 +49,7 @@ define([
               var v1 = $scope.vehicles.pop();
               v1.terminate();
             }
-            map.unloadDestroy();
+            $scope.map.unloadDestroy();
           }
           $scope.initTmap();
         }
@@ -64,13 +62,15 @@ define([
 
       //초기화 함수
       $scope.initTmap = function() {
-        map = new Tmap.Map({
+        $scope.map = new Tmap.Map({
           div:'map_div',
           //width:'100%',
           height:'800px',
           transitionEffect:"resize",
           animation:true
         });
+        $scope.markerLayer = new Tmap.Layer.Markers("MarkerLayer");
+        $scope.map.addLayer($scope.markerLayer);
 
         var str = "";
         if($scope.route.passlist.length > 0) {
@@ -119,12 +119,12 @@ define([
 
         var routeLayer = new Tmap.Layer.Vector("route", {protocol:prtcl, strategies:[new Tmap.Strategy.Fixed()]});
         routeLayer.events.register("featuresadded", routeLayer, $scope.onDrawnFeatures);
-        map.addLayer(routeLayer);
+        $scope.map.addLayer(routeLayer);
       };
 
       //경로 그리기 후 해당영역으로 줌
       $scope.onDrawnFeatures = function(e) {
-        map.zoomToExtent(this.getDataExtent());
+        $scope.map.zoomToExtent(this.getDataExtent());
       };
 
       // detection event 발생 시, 이벤트 type, 이벤트 좌표를 받아 해당 위치에 10초 뒤에 표기
@@ -138,28 +138,25 @@ define([
         var eventPositionLat = event.positionLat;
         var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
         var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-        map.addLayer(markerLayer);
+        $scope.map.addLayer(markerLayer);
         setTimeout(function(){
           markerLayer.addMarker(eventMarker);
         },10000);
       };
 
       $scope.driving = function(url, src, dest, passlist) {
-        var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
-        map.addLayer(markerLayer);
-
         var add = function (pos, driveStatus) {
           var size = new Tmap.Size(50, 50);
           var offset = new Tmap.Pixel(-(size.w / 2), -(size.h / 2));
           var icon = new Tmap.Icon('vehicle.png', size, offset);
           var marker = new Tmap.Marker(new Tmap.LonLat(pos.lng, pos.lat), icon);
-          markerLayer.addMarker(marker);
+          $scope.markerLayer.addMarker(marker);
 
           if(driveStatus) {
             var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+driveStatus.totalDistance+"km</li><li>예상 소요시간: "+driveStatus.totalTime+"s</li></ul>";
             var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
             popup.autoSize = true;
-            map.addPopup(popup);
+            $scope.map.addPopup(popup);
             return {marker: marker, popup: popup};
           }
           else
@@ -168,11 +165,11 @@ define([
         var removePrev = function(draw) {
           if(draw) {
             if(draw.marker) {
-              markerLayer.removeMarker(draw.marker);
+              $scope.markerLayer.removeMarker(draw.marker);
               delete draw.marker;
             }
             if(draw.popup) {
-              map.removePopup(draw.popup);
+              $scope.map.removePopup(draw.popup);
               delete draw.popup;
             }
           }
@@ -188,13 +185,13 @@ define([
               if(_.isUndefined($scope.vehicles[event.data.belongs]))
               //create new vehicle
                 vehicleFactory(event.data.belongs, undefined, undefined, undefined, function(vehicle) {
+                  console.log('주변 차량 생성', event.data.belongs, $scope.map);
                   $scope.vehicles[event.data.belongs] = vehicle;
                   vehicle.changePosition(event.data, add, removePrev)
                 });
               else
                 $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
               break;
-
             default:
               console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
           }
