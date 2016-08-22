@@ -345,9 +345,11 @@ define([
             var now_lat = response.data.coordinate.lat;
             var now_lng = response.data.coordinate.lon;
 
+            var stationCounter=0;
             for (var i = 0; i < $scope.options.charging_stations.length; i++) {
               var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
               if (dist < 20) {
+                stationCounter++;
                 var param = {
                   version: 1,
                   lat: $scope.options.charging_stations[i].lat,
@@ -373,9 +375,22 @@ define([
                   });
 
                 var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
+
+                var index = select(availEv, dist, stationCounter);
+
               }
             }
           });
+        }
+        function select (numChargers, dist, stationCounter){
+          for (var i=0 ; i<stationCounter; i++ ){
+            var num =0;
+            var arr = new Array();
+            arr[i] = numChargers + 0.25* dist;
+            if (arr[i]>num)
+              num = arr[i];
+              return i;
+          }
         }
         //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
         function calcCrow(lat1, lon1, lat2, lon2)
