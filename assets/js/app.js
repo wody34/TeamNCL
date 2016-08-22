@@ -476,98 +476,100 @@ define([
       });
 
 
-      var BoundingBoxTracker = function () {
-        BoundingBoxTracker.base(this, 'constructor');
-      };
-      tracking.inherits(BoundingBoxTracker, tracking.Tracker);
+      (function() {
+        var BoundingBoxTracker = function () {
+          BoundingBoxTracker.base(this, 'constructor');
+        };
+        tracking.inherits(BoundingBoxTracker, tracking.Tracker);
 
-      BoundingBoxTracker.prototype.templateDescriptors_ = null;
-      BoundingBoxTracker.prototype.templateKeypoints_ = null;
-      BoundingBoxTracker.prototype.fastThreshold = 100;
-      BoundingBoxTracker.prototype.blur = 4;
+        BoundingBoxTracker.prototype.templateDescriptors_ = null;
+        BoundingBoxTracker.prototype.templateKeypoints_ = null;
+        BoundingBoxTracker.prototype.fastThreshold = 100;
+        BoundingBoxTracker.prototype.blur = 4;
 
-      BoundingBoxTracker.prototype.setTemplate = function (pixels, width, height) {
-        var blur = tracking.Image.blur(pixels, width, height, this.blur);
-        var grayscale = tracking.Image.grayscale(blur, width, height);
-        this.templateKeypoints_ = tracking.Fast.findCorners(grayscale, width, height);
-        this.templateDescriptors_ = tracking.Brief.getDescriptors(grayscale, width, this.templateKeypoints_);
-      };
+        BoundingBoxTracker.prototype.setTemplate = function (pixels, width, height) {
+          var blur = tracking.Image.blur(pixels, width, height, this.blur);
+          var grayscale = tracking.Image.grayscale(blur, width, height);
+          this.templateKeypoints_ = tracking.Fast.findCorners(grayscale, width, height);
+          this.templateDescriptors_ = tracking.Brief.getDescriptors(grayscale, width, this.templateKeypoints_);
+        };
 
-      BoundingBoxTracker.prototype.track = function (pixels, width, height) {
-        var blur = tracking.Image.blur(pixels, width, height, this.blur);
-        var grayscale = tracking.Image.grayscale(blur, width, height);
-        var keypoints = tracking.Fast.findCorners(grayscale, width, height, this.fastThreshold);
-        var descriptors = tracking.Brief.getDescriptors(grayscale, width, keypoints);
-        this.emit('track', {
-          data: tracking.Brief.reciprocalMatch(this.templateKeypoints_, this.templateDescriptors_, keypoints, descriptors)
+        BoundingBoxTracker.prototype.track = function (pixels, width, height) {
+          var blur = tracking.Image.blur(pixels, width, height, this.blur);
+          var grayscale = tracking.Image.grayscale(blur, width, height);
+          var keypoints = tracking.Fast.findCorners(grayscale, width, height, this.fastThreshold);
+          var descriptors = tracking.Brief.getDescriptors(grayscale, width, keypoints);
+          this.emit('track', {
+            data: tracking.Brief.reciprocalMatch(this.templateKeypoints_, this.templateDescriptors_, keypoints, descriptors)
+          });
+        };
+
+        // Track ===================================================================
+        var boundingBox = document.getElementById('boundingBox');
+        var video = document.getElementById('video');
+        // video.playbackRate = 0.5;
+
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+
+        var image1 = document.getElementById('ref_img');
+        var width = 500;
+        var height = 250;
+
+        var tracker = new BoundingBoxTracker();
+
+        var queue = [0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70];
+
+        var over = false;
+        var prev = 0;
+        tracker.on('track', function(event) {
+
+          event.data.sort(function(a, b) {
+            return b.confidence - a.confidence;
+          });
+          var sum = 0;
+          for(var i = 0; i < Math.min(4, event.data.length); ++i)
+            sum += event.data[i].confidence;
+
+          queue.shift();
+          queue.push(sum/Math.min(4, event.data.length));
+
+          sum = 0;
+          for(var i = 0; i < queue.length; ++i)
+            sum += queue[i];
+
+          if(sum/queue.length > 0.72 && prev <= 0.72 && !over) {
+            over = true;
+          }
+          else if(over && sum/queue.length <= 0.65 && prev > 0.65 )
+            $scope.objectDetection();
+
+          prev = sum/queue.length;
+          // console.log(prev);
+          context.clearRect(0,0,width,height);
+          context.drawImage(image1, 0, 0, width, height);
+          for (var i = 0; i < Math.min(10, event.data.length); i++) {
+            var template = event.data[i].keypoint1;
+            var frame = event.data[i].keypoint2;
+            context.beginPath();
+            context.strokeStyle = 'magenta';
+            context.moveTo(frame[0], frame[1]);
+            context.lineTo(template[0], template[1]);
+            context.stroke();
+          }
         });
-      };
 
-      // Track ===================================================================
-      var boundingBox = document.getElementById('boundingBox');
-      var video = document.getElementById('video');
-      // video.playbackRate = 0.5;
+        var trackerTask = tracking.track(video, tracker);
+        trackerTask.stop();
 
-      var canvas = document.getElementById('canvas');
-      var context = canvas.getContext('2d');
 
-      var image1 = document.getElementById('ref_img');
-      var width = 500;
-      var height = 250;
-
-      var tracker = new BoundingBoxTracker();
-
-      var queue = [0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70];
-
-      var over = false;
-      var prev = 0;
-      tracker.on('track', function(event) {
-
-        event.data.sort(function(a, b) {
-          return b.confidence - a.confidence;
-        });
-        var sum = 0;
-        for(var i = 0; i < Math.min(4, event.data.length); ++i)
-          sum += event.data[i].confidence;
-
-        queue.shift();
-        queue.push(sum/Math.min(4, event.data.length));
-
-        sum = 0;
-        for(var i = 0; i < queue.length; ++i)
-          sum += queue[i];
-
-        if(sum/queue.length > 0.72 && prev <= 0.72 && !over) {
-          over = true;
-        }
-        else if(over && sum/queue.length <= 0.65 && prev > 0.65 )
-          console.log('object!');
-
-        prev = sum/queue.length;
-        // console.log(prev);
-        context.clearRect(0,0,width,height);
         context.drawImage(image1, 0, 0, width, height);
-        for (var i = 0; i < Math.min(10, event.data.length); i++) {
-          var template = event.data[i].keypoint1;
-          var frame = event.data[i].keypoint2;
-          context.beginPath();
-          context.strokeStyle = 'magenta';
-          context.moveTo(frame[0], frame[1]);
-          context.lineTo(template[0], template[1]);
-          context.stroke();
-        }
-      });
 
-      var trackerTask = tracking.track(video, tracker);
-      trackerTask.stop();
+        var imageData1 = context.getImageData(0, 0, width, height);
 
-
-      context.drawImage(image1, 0, 0, width, height);
-
-      var imageData1 = context.getImageData(0, 0, width, height);
-
-      tracker.setTemplate(imageData1.data, width, height);
-      trackerTask.run();
+        tracker.setTemplate(imageData1.data, width, height);
+        trackerTask.run();
+      })();
 
     }]);
 
