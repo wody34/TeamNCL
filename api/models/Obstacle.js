@@ -8,7 +8,20 @@
 module.exports = {
 
   attributes: {
-
+    lat: {
+      type: 'float'
+    },
+    lng: {
+      type: 'float'
+    },
+    type: {
+      type: 'integer',
+      enum: [0, 1, 2]
+    },
+    status: {
+      type: 'integer',
+      enum: [0, 1, 2] //생성, 발견, 제거?
+    }
   }
 };
 

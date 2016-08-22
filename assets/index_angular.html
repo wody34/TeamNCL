@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
   <meta charset="UTF-8">
   <title>Title</title>
@@ -38,10 +38,11 @@
 
 
     <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
-    <h5 ng-repeat="pass in route.passlist track by $index">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select></h5>
+    <h5 ng-repeat="pass in route.passlist">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <button ng-click="addPassList()">경유지 추가</button><br/>
-
+    <button ng-click="objectDetection()">오브젝트 발견</button><br/>
+    <input type="checkbox" ng-model="tracking"/>주행 추적<br/>
 
     <!--<script type ="text/javascript">-->
       <!--var availDist;-->

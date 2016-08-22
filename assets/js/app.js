@@ -15,8 +15,9 @@ define([
       console.log("EVClient Activated");
 
       // io.socket.on('connect', function(){
-      io.socket.get('/DriveLog/subscribe', function(resData, a) {
-        //console.log('obstable', resData);
+      io.socket.get('/DriveLog/subscribe', function() {});
+      io.socket.get('/Obstacle/subscribe', function() {
+        console.log("Obstacle subscribed!");
       });
 
       $scope.route = {
@@ -26,6 +27,8 @@ define([
       $scope.options = {
         charging_stations: []
       };
+
+      $scope.tracking = true;
 
       $scope.vehicles = [];
 
@@ -39,7 +42,7 @@ define([
       });
 
       $scope.$watch('route', function(newValue, oldValue) {
-        //console.log('value changed', newValue, oldValue);
+        console.log('value changed', newValue, oldValue);
         if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
           if(!_.isUndefined($scope.map)) {
             $scope.vehicle.stopDrive();
@@ -54,6 +57,8 @@ define([
           $scope.initTmap();
         }
       }, true);
+
+
 
       $scope.addPassList = function() {
         console.log("add");
@@ -81,10 +86,6 @@ define([
           str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
 
           for (var i = 0; i < $scope.route.passlist.length; ++i) {
-            var evName = $scope.route.passlist[i].evName;
-            var evNum = $scope.route.passlist[i].evNum;
-            var type = $scope.route.passlist[i].type;
-
             var param = {
               version: 1,
               lat: $scope.route.passlist[i].lat,
@@ -94,24 +95,29 @@ define([
               toCoord: 'EPSG3857',
               format: 'json'
             };
-
-            $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-              var size = new Tmap.Size(30, 30);
-              var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
-              var icon = new Tmap.Icon('station.png', size, offset);
-              var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
-              var stationMarker = new Tmap.Marker(lonLat, icon);
-              var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
-              stationMarker.events.register("click", markerLayer, function () {
-                var popupMessage = "<ul><li>충전소: "+evName+"</li><li>충전 유형: "+type+"</li><li>보유 충전기: "+evNum+"대</li></ul>";
-                var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
-                popup.autoSize = true;
-                $scope.map.addPopup(popup);
+            (function() {
+              var index = i;
+              $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+                var evName = $scope.route.passlist[index].evName;
+                var evNum = $scope.route.passlist[index].evNum;
+                var type = $scope.route.passlist[index].type;
+                var size = new Tmap.Size(30, 30);
+                var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
+                var icon = new Tmap.Icon('station.png', size, offset);
+                var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+                var stationMarker = new Tmap.Marker(lonLat, icon);
+                var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
+                stationMarker.events.register("click", markerLayer, function () {
+                  var popupMessage = "<ul><li>충전소: "+evName+"</li><li>충전 유형: "+type+"</li><li>보유 충전기: "+evNum+"대</li></ul>";
+                  var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
+                  popup.autoSize = true;
+                  $scope.map.addPopup(popup);
+                });
+                $scope.map.addLayer(markerLayer);
+                markerLayer.addMarker(stationMarker);
               });
+            })();
 
-              $scope.map.addLayer(markerLayer);
-              markerLayer.addMarker(stationMarker);
-            });
           }
         }
         var param = {
@@ -190,7 +196,8 @@ define([
             var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+Math.round(driveStatus.totalDistance*100)/100+"km</li><li>예상 소요시간: "+Math.round(driveStatus.totalTime)+"초</li></ul>";
             var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
             popup.autoSize = true;
-            $scope.map.setCenter(new Tmap.LonLat(pos.lng, pos.lat));
+            if($scope.tracking)
+              $scope.map.setCenter(new Tmap.LonLat(pos.lng, pos.lat));
             $scope.map.addPopup(popup);
             return {marker: marker, popup: popup};
           }
@@ -301,7 +308,6 @@ define([
               self.stopDrive();
             }
           }, 100);
-
         };
 
         Vehicle.prototype.stopDrive = function () {
@@ -324,8 +330,46 @@ define([
 
         Vehicle.prototype.terminate = function() {
           removePrev(this.draw);
+        };
+
+        Vehicle.prototype.getCurrentPosition = function() {
+          return {lng: this.routes[this.index][0], lat: this.routes[this.index][1]};
         }
       };
+
+      $scope.objectDetection = function() {
+        if(!_.isUndefined($scope.vehicle)) {
+          var obstacle = $scope.vehicle.getCurrentPosition();
+          obstacle.type = Math.floor(Math.random(3));
+          obstacle.status = 0;
+          $http.post("/Obstacle", obstacle).then(function(response) {
+            console.log(response.data);
+          });
+        }
+      };
+
+      io.socket.on('obstacle', function(event) {
+        console.log(event);
+        switch (event.data.status) {
+          case 0:
+            var size = new Tmap.Size(50,50);
+            var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+            var eventImage = new Tmap.Icon('fire.png', size, offset);
+            var eventPositionLng = event.data.lng;
+            var eventPositionLat = event.data.lat;
+            var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
+            $scope.markerLayer.addMarker(eventMarker);
+            break;
+          case 1:
+
+            break;
+          case 2:
+
+            break;
+          default:
+            console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+        }
+      });
     }]);
 
     return $app;
