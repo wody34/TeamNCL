@@ -15,7 +15,7 @@
     var stopInterval = false;
     var startX, startY, passList, endX, endY;
 
-    $.get("/evPos", function(data) {
+    $.get("/evPos?limit=1000", function(data) {
       var processedData = [];
       for (var i = 0; i < data.length; i++) {
         processedData.push (data[i].evName + "\n");

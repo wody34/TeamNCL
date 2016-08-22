@@ -24,7 +24,7 @@ define([
         charging_stations: []
       };
 
-      $http.get("/ChargingStation?limit=1000").then(function(response) {
+      $http.get("/EvPos?limit=1000").then(function(response) {
         var data = response.data;
         console.log(data);
         console.log(data.length);
