@@ -13,3 +13,13 @@
   overflow: hidden;
 }
 
+#ref_img {
+  position: absolute;
+  top: -1000px;
+  cursor: crosshair;
+}
+#ref_img {
+  position: absolute;
+  top: -1000px;
+  cursor: crosshair;
+}

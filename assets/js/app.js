@@ -3,7 +3,8 @@
 //requireJS 모듈 선언 - [myApp 앵귤러 모듈]
 define([
     'angular', //앵귤러 모듈을 사용하기 위해 임포트
-    'lodash'
+    'lodash',
+    'tracking'
   ],
 
   //디펜던시 로드뒤 콜백함수
@@ -14,8 +15,8 @@ define([
       console.log("EVClient Activated");
 
       // io.socket.on('connect', function(){
-      io.socket.get('/DriveLog/subscribe', function() {});
-      io.socket.get('/Obstacle/subscribe', function() {
+      io.socket.get('/DriveLog/subscribe', function(a, b, c) {});
+      io.socket.get('/Obstacle/subscribe', function(a, b, c) {
         console.log("Obstacle subscribed!");
       });
 
@@ -25,8 +26,8 @@ define([
         $scope.searched = false;
         //var s2dDistance=100;
         //if($scope.availDist>s2dDistance){
-          //console.log(availDist.value-s2dDistance);
-          //document.write("<SELECT NAME=sltSample SIZE=1><OPTION VALUE=1>급속</OPTION><OPTION VALUE=2>완속</OPTION>  </SELECT>");
+        //console.log(availDist.value-s2dDistance);
+        //document.write("<SELECT NAME=sltSample SIZE=1><OPTION VALUE=1>급속</OPTION><OPTION VALUE=2>완속</OPTION>  </SELECT>");
         //}
 
         $http.get("/EvPos?limit=1000").then(function(response) {
@@ -36,9 +37,12 @@ define([
           $scope.options.charging_stations = data;
           for (var i in $scope.options.charging_stations){
             $scope.options.charging_stations[i].usg = Math.floor(Math.random() * $scope.options.charging_stations[i].evNum);
+            //console.log("$scope.options.charging_stations[0].usg "+$scope.options.charging_stations[0].usg);
           }
           $scope.route.src_gps = $scope.options.charging_stations[0];
+          //console.log($scope.options.charging_stations[0]);
           $scope.route.dest_gps = $scope.options.charging_stations[1];
+          //console.log($scope.options.charging_stations[2]);
         });
       };
 
@@ -113,6 +117,7 @@ define([
                 var evNum = $scope.route.passlist[index].evNum;
                 var type = $scope.route.passlist[index].type;
                 var usg = $scope.route.passlist[index].usg;
+                //var usg = Math.floor(Math.random() * evNum);
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -249,7 +254,7 @@ define([
                 $scope.vehicles[event.data.belongs].changePosition(event.data, add, removePrev);
               break;
             default:
-              //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
+            //console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
           }
         });
 
@@ -272,7 +277,7 @@ define([
               totalTime: data.features[0].properties.totalTime,
               timeStep: data.features[0].properties.totalTime/totalLength,
               distanceStep: data.features[0].properties.totalDistance/1000/totalLength
-            };
+            }
 
             for (var i in data.features) {
               var coordinates = data.features[i].geometry.coordinates;
@@ -324,78 +329,14 @@ define([
 
             $scope.drivenDist += self.driveStatus.distanceStep;
             if ($scope.searched == false && $scope.drivenDist >= 150) {
-              searchStation(new_pos);
+              searchStation();
               $scope.searched = true;
             }
           }, 100);
         };
 
-        function searchStation(new_pos) {
-          var param = {
-            version: 1,
-            lat: new_pos.lat,
-            lon: new_pos.lng,
-            appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-            fromCoord: 'EPSG3857',
-            toCoord: 'WGS84GEO',
-            format: 'json'
-          };
-
-          $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-            var now_lat = response.data.coordinate.lat;
-            var now_lng = response.data.coordinate.lon;
-
-            for (var i = 0; i < $scope.options.charging_stations.length; i++) {
-              var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
-              if (dist < 20) {
-                var param = {
-                  version: 1,
-                  lat: $scope.options.charging_stations[i].lat,
-                  lon: $scope.options.charging_stations[i].lng,
-                  appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-                  fromCoord: 'WGS84GEO',
-                  toCoord: 'EPSG3857',
-                  format: 'json'
-                };
-                  $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                    var size = new Tmap.Size(20,20);
-                    var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-                    var image = new Tmap.Icon('star.png', size, offset);
-                    var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
-                    var marker = new Tmap.Marker(lonLat, image);
-                    var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-                    $scope.map.addLayer(markerLayer);
-                    markerLayer.addMarker(marker);
-
-                    setTimeout (function(){
-                      markerLayer.removeMarker(marker);
-                    },3000);
-                  });
-
-                var availEv = $scope.options.charging_stations[i].evNum - $scope.options.charging_stations[i].usg;
-              }
-            }
-          });
-        }
-        //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
-        function calcCrow(lat1, lon1, lat2, lon2)
-        {
-          var R = 6371; // km
-          var dLat = toRad(lat2-lat1);
-          var dLon = toRad(lon2-lon1);
-          var lat1 = toRad(lat1);
-          var lat2 = toRad(lat2);
-
-          var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
-          var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          var d = R * c;
-          return d;
-        }
-        // Converts numeric degrees to radians
-        function toRad(Value)
-        {
-          return Value * Math.PI / 180;
+        function searchStation() {
+          console.log('searchstation');
         }
 
         Vehicle.prototype.stopDrive = function () {
@@ -458,7 +399,104 @@ define([
             console.warn('Unrecognized socket event (`%s`) from server:',event.verb, event);
         }
       });
+
+
+      var BoundingBoxTracker = function () {
+        BoundingBoxTracker.base(this, 'constructor');
+      };
+      tracking.inherits(BoundingBoxTracker, tracking.Tracker);
+
+      BoundingBoxTracker.prototype.templateDescriptors_ = null;
+      BoundingBoxTracker.prototype.templateKeypoints_ = null;
+      BoundingBoxTracker.prototype.fastThreshold = 100;
+      BoundingBoxTracker.prototype.blur = 4;
+
+      BoundingBoxTracker.prototype.setTemplate = function (pixels, width, height) {
+        var blur = tracking.Image.blur(pixels, width, height, this.blur);
+        var grayscale = tracking.Image.grayscale(blur, width, height);
+        this.templateKeypoints_ = tracking.Fast.findCorners(grayscale, width, height);
+        this.templateDescriptors_ = tracking.Brief.getDescriptors(grayscale, width, this.templateKeypoints_);
+      };
+
+      BoundingBoxTracker.prototype.track = function (pixels, width, height) {
+        var blur = tracking.Image.blur(pixels, width, height, this.blur);
+        var grayscale = tracking.Image.grayscale(blur, width, height);
+        var keypoints = tracking.Fast.findCorners(grayscale, width, height, this.fastThreshold);
+        var descriptors = tracking.Brief.getDescriptors(grayscale, width, keypoints);
+        this.emit('track', {
+          data: tracking.Brief.reciprocalMatch(this.templateKeypoints_, this.templateDescriptors_, keypoints, descriptors)
+        });
+      };
+
+      // Track ===================================================================
+      var boundingBox = document.getElementById('boundingBox');
+      var video = document.getElementById('video');
+      // video.playbackRate = 0.5;
+
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+
+      var image1 = document.getElementById('ref_img');
+      var width = 500;
+      var height = 250;
+
+      var tracker = new BoundingBoxTracker();
+
+      var queue = [0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70];
+
+      var over = false;
+      var prev = 0;
+      tracker.on('track', function(event) {
+
+        event.data.sort(function(a, b) {
+          return b.confidence - a.confidence;
+        });
+        var sum = 0;
+        for(var i = 0; i < Math.min(4, event.data.length); ++i)
+          sum += event.data[i].confidence;
+
+        queue.shift();
+        queue.push(sum/Math.min(4, event.data.length));
+
+        sum = 0;
+        for(var i = 0; i < queue.length; ++i)
+          sum += queue[i];
+
+        if(sum/queue.length > 0.72 && prev <= 0.72 && !over) {
+          over = true;
+        }
+        else if(over && sum/queue.length <= 0.65 && prev > 0.65 )
+          console.log('object!');
+
+        prev = sum/queue.length;
+        // console.log(prev);
+        context.clearRect(0,0,width,height);
+        context.drawImage(image1, 0, 0, width, height);
+        for (var i = 0; i < Math.min(10, event.data.length); i++) {
+          var template = event.data[i].keypoint1;
+          var frame = event.data[i].keypoint2;
+          context.beginPath();
+          context.strokeStyle = 'magenta';
+          context.moveTo(frame[0], frame[1]);
+          context.lineTo(template[0], template[1]);
+          context.stroke();
+        }
+      });
+
+      var trackerTask = tracking.track(video, tracker);
+      trackerTask.stop();
+
+
+      context.drawImage(image1, 0, 0, width, height);
+
+      var imageData1 = context.getImageData(0, 0, width, height);
+
+      tracker.setTemplate(imageData1.data, width, height);
+      trackerTask.run();
+
     }]);
+
+
 
     return $app;
   }

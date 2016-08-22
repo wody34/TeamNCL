@@ -19,9 +19,15 @@
 <!--Title-->
 <section style="background: #0a2972; color: #ffffff; padding: 70px 0 30px 0; text-align: center;">
   <div class="container">
-    <h1><b> C2V Connected Car Service Simulator Result </b></h1>
+    <h3><b> C2V Connected Car Service Simulator Result </b></h3>
     <p style="color: #ffffff;"><br>Simulation Result Page. We provide readable data from simulation result</p>
   </div>
+</section>
+
+<section >
+  <canvas id="canvas" width="500" height="250"></canvas>
+  <video id="video" width="500" height="250" preload autoplay loop muted controls src="/video2.mp4"></video>
+  <img id='ref_img' width="500" height="250" src="/rock.png">
 </section>
 
 <!--Body-->
@@ -30,18 +36,21 @@
     <h3 style="color: #082a61;"><b>경로 설정<br></b></h3>
 
     <!--<form>-->
-    <label>최초 주행가능 거리 (km)</label>
+    <label>주행가능 거리 (km)</label>
     <input type="text" id="availDist"/>
       <!--<input type="button" value = "입력" onclick="getElement();">-->
     <button ng-click="getElement()">입력</button><br/>
     <!--</form><br/>-->
+
 
     <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <h5 ng-repeat="pass in route.passlist">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
     <button ng-click="addPassList()">경유지 추가</button><br/>
     <button ng-click="objectDetection()">오브젝트 발견</button><br/>
-    <input type="checkbox" ng-model="tracking"/>주행 추적<br/>
+    <div class="form-group">
+      <input type="checkbox" ng-model="tracking"/><label> 주행 추적</label>
+    </div>
 
     <!--<script type ="text/javascript">-->
       <!--var availDist;-->
@@ -58,6 +67,8 @@
         <!--}-->
       <!--}-->
     <!--</script>-->
+
+
 
   </div>
   <div id="map_div"></div>

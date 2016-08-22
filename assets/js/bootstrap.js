@@ -9,7 +9,8 @@ requirejs.config({
     // 'tmap': 'https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=35bfd940-2738-36fa-9502-f25ddde1ed96',
     'angular': '/lib/angular.min',
     'lodash': '/lib/lodash.min',
-    'sails.io': '/js/dependencies/sails.io'
+    'sails.io': '/js/dependencies/sails.io',
+    'tracking': '/lib/tracking-min'
   },
   shim:{
     'angular':{
@@ -25,7 +26,8 @@ requirejs.config({
     'app':{
       deps:[
         'angular',
-        'lodash'
+        'lodash',
+        'tracking'
       ]
     }
   }
