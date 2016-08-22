@@ -53,44 +53,6 @@ process.chdir(__dirname);
     }
   }
 
-  ///**
-  // * Created by jisoochoi_pc on 16. 8. 21..
-  // */
-  //var latitude_global;
-  //var longitude_global;
-  //var express = require('express');
-  //var app = express();
-  //var server = app.listen(1337);
-  //app.use(express.static(path.join(__dirname, 'assets')));
-  //var io = require('socket.io').listen(server);
-  //io.sockets.on('connection', function (socket) {
-  //  socket.on('event', function (data) {
-  //    console.log(data);
-  //    socket.broadcast.emit('linesend_toclient',data);
-  //  });
-  //});
-
-
-  var app = require('express').createServer();
-  var io = require('socket.io')(app);
-
-  app.listen(80);
-
-  app.get('/', function (req, res) {
-    res.sendfile(__dirname + '/index.html');
-  });
-
-  io.on('connection', function (socket) {
-    socket.emit('news', { hello: 'world' });
-    socket.on('my other event', function (data) {
-      console.log(data);
-    });
-  });
-
-
-
-
-
   // Start server
   sails.lift(rc('sails'));
 })();

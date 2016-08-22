@@ -79,7 +79,27 @@ define([
             str += pass.lng + "," + pass.lat + ",0,0,0_"
           }
           str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
+
+          var size = new Tmap.Size(30, 30);
+          var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
+          var icon = new Tmap.Icon('station.png', size, offset);
+          var pr_4326 = new Tmap.Projection("EPSG:4326");
+          var pr_3857 = new Tmap.Projection("EPSG:3857");
+          var lonLat = new Tmap.LonLat($scope.route.passlist[i].lng, $scope.route.passlist[i].lat).transform(pr_4326, pr_3857);
+          var stationMarker = new Tmap.Marker(lonLat, icon);
+          var markerLayer = new Tmap.Layer.Markers("MarkerLayer");
+          stationMarker.events.register("click", markerLayer, function () {
+            alert("hello");
+            var popupMessage = "<ul><li>hello</li></ul>";
+            var popup = new Tmap.Popup("lablePopup", lonLat, new Tmap.Size(100,20), popupMessage, true);
+            popup.autoSize = true;
+            $scope.map.addPopup(popup);
+          });
+
+          $scope.map.addLayer(markerLayer);
+          markerLayer.addMarker(stationMarker);
         }
+
         var param = {
           version: 1,
           startX: $scope.route.src_gps.lng,
