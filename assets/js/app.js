@@ -44,8 +44,9 @@ define([
       };
 
       $scope.route = {
-        passlist: []
       };
+
+      $scope.passlist = [];
 
       $scope.options = {
         charging_stations: []
@@ -58,14 +59,15 @@ define([
       $scope.$watch('route', reroute, true);
 
       $scope.addPassList = function(selected) {
-        $scope.route.passlist.push(selected);
-        $scope.route.src_gps = $scope.vehicle.getCurrentPosition();
-        reroute($scope.route);
+        console.log('add new passlist', selected);
+        $scope.passlist.push(selected);
+        $scope.route.src_gps = $scope.new_start;
+        // reroute($scope.route);
       };
 
       function reroute(newValue, oldValue) {
         //console.log('value changed', newValue, oldValue);
-        if(!_.isUndefined(newValue.src_gps) && !_.isUndefined(newValue.dest_gps)) {
+        if(!_.isUndefined($scope.route.src_gps) && !_.isUndefined($scope.route.dest_gps)) {
           if(!_.isUndefined($scope.map)) {
             $scope.vehicle.stopDrive();
             $scope.vehicle.terminate();
@@ -93,18 +95,18 @@ define([
         $scope.map.addLayer($scope.markerLayer);
 
         var str = "";
-        if($scope.route.passlist.length > 0) {
-          for (var i = 0; i < $scope.route.passlist.length - 1; ++i) {
-            var pass = $scope.route.passlist[i];
+        if($scope.passlist.length > 0) {
+          for (var i = 0; i < $scope.passlist.length - 1; ++i) {
+            var pass = $scope.passlist[i];
             str += pass.lng + "," + pass.lat + ",0,0,0_"
           }
-          str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
+          str += $scope.passlist[i].lng + "," + $scope.passlist[i].lat + ",0,G,0";
 
-          for (var i = 0; i < $scope.route.passlist.length; ++i) {
+          for (var i = 0; i < $scope.passlist.length; ++i) {
             var param = {
               version: 1,
-              lat: $scope.route.passlist[i].lat,
-              lon: $scope.route.passlist[i].lng,
+              lat: $scope.passlist[i].lat,
+              lon: $scope.passlist[i].lng,
               appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
               fromCoord: 'WGS84GEO',
               toCoord: 'EPSG3857',
@@ -113,10 +115,10 @@ define([
             (function() {
               var index = i;
               $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                var evName = $scope.route.passlist[index].evName;
-                var evNum = $scope.route.passlist[index].evNum;
-                var type = $scope.route.passlist[index].type;
-                var usg = $scope.route.passlist[index].usg;
+                var evName = $scope.passlist[index].evName;
+                var evNum = $scope.passlist[index].evNum;
+                var type = $scope.passlist[index].type;
+                var usg = $scope.passlist[index].usg;
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -159,7 +161,7 @@ define([
         //};
 
         $scope.searchRoute(urlStr+"&format=xml");
-        $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
+        $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.passlist);
         //detection 이벤트 타입 및 좌표 대입
         //$scope.detectionEvent(event);
       };
@@ -180,25 +182,8 @@ define([
 
       //경로 그리기 후 해당영역으로 줌
       $scope.onDrawnFeatures = function(e) {
-        $scope.map.zoomToExtent(this.getDataExtent());
+        // $scope.map.zoomToExtent(this.getDataExtent());
       };
-
-      // detection event 발생 시, 이벤트 type, 이벤트 좌표를 받아 해당 위치에 10초 뒤에 표기
-      //$scope.detectionEvent = function(event) {
-      //  var flag = event.flag;
-      //  var eventType = event.type.toString();
-      //  var size = new Tmap.Size(50,50);
-      //  var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-      //  var eventImage = new Tmap.Icon(eventType+'.png', size, offset);
-      //  var eventPositionLng = event.positionLng;
-      //  var eventPositionLat = event.positionLat;
-      //  var eventMarker = new Tmap.Marker(new Tmap.LonLat(eventPositionLng, eventPositionLat), eventImage);
-      //  var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-      //  $scope.map.addLayer(markerLayer);
-      //  setTimeout(function(){
-      //    markerLayer.addMarker(eventMarker);
-      //  },10000);
-      //};
 
       $scope.driving = function(url, src, dest, passlist) {
         var add = function (pos, driveStatus) {
@@ -211,6 +196,8 @@ define([
           if(driveStatus) {
             var maxDist = 190;
             var availDist = maxDist- $scope.drivenDist;
+            if(_.isUndefined(src.evName))
+              src.evName = "재안내";
             var popupMessage = "<ul><li>출발지: "+src.evName+"</li><li>목적지: "+dest.evName+"</li><li>예상 주행거리: "+Math.round(driveStatus.totalDistance*100)/100+"km</li><li>예상 소요시간: "+Math.round(driveStatus.totalTime)+"초</li><li>주행 가능 거리: "+ Math.round(availDist)+"km</li></ul>";
             var popup = new Tmap.Popup("lablePopup", new Tmap.LonLat(pos.lng, pos.lat), new Tmap.Size(100,20), popupMessage, false);
             popup.autoSize = true;
@@ -323,11 +310,13 @@ define([
             self.writeStatus();
             //console.log(self.index, self.routes.length);
             if (++self.index >= self.routes.length) {
+              console.log('End!')
               self.stopDrive();
             }
 
             $scope.drivenDist += self.driveStatus.distanceStep;
             if ($scope.searched == false && $scope.drivenDist >= 150) {
+              $scope.vehicle.stopDrive();
               searchStation(new_pos);
               $scope.searched = true;
             }
@@ -348,6 +337,7 @@ define([
           $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
             var now_lat = response.data.coordinate.lat;
             var now_lng = response.data.coordinate.lon;
+            $scope.new_start = {lat: now_lat, lng: now_lng};
 
             var selectedEv;
             var list = [];
@@ -356,36 +346,31 @@ define([
               if (dist < 20) {
                 $scope.options.charging_stations[i].dist  = dist;
                 list.push($scope.options.charging_stations[i]);
-                var param = {
-                  version: 1,
-                  lat: $scope.options.charging_stations[i].lat,
-                  lon: $scope.options.charging_stations[i].lng,
-                  appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-                  fromCoord: 'WGS84GEO',
-                  toCoord: 'EPSG3857',
-                  format: 'json'
-                };
-                $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                  var size = new Tmap.Size(20,20);
-                  var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-                  if (list.length > 0) {
-                    var image = new Tmap.Icon('star20km.png', size, offset);
-                  }
-                  else {
-                    var image = new Tmap.Icon('star40km.png', size, offset);
-                  }
-                  var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
-                  var marker = new Tmap.Marker(lonLat, image);
-                  var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-                  $scope.map.addLayer(markerLayer);
-                  markerLayer.addMarker(marker);
-
-                  setTimeout (function(){
-                    if (markerLayer != undefined) {
-                      markerLayer.removeMarker(marker);
-                    }
-                  },3000);
-                });
+                // var param = {
+                //   version: 1,
+                //   lat: $scope.options.charging_stations[i].lat,
+                //   lon: $scope.options.charging_stations[i].lng,
+                //   appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+                //   fromCoord: 'WGS84GEO',
+                //   toCoord: 'EPSG3857',
+                //   format: 'json'
+                // };
+                // $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(r) {
+                //   var size = new Tmap.Size(20,20);
+                //   var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+                //   var image = new Tmap.Icon('star20km.png', size, offset);
+                //   var lonLat = new Tmap.LonLat(r.data.coordinate.lon, r.data.coordinate.lat);
+                //   var marker = new Tmap.Marker(lonLat, image);
+                //   var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+                //   $scope.map.addLayer(markerLayer);
+                //   markerLayer.addMarker(marker);
+                //
+                //   setTimeout (function(){
+                //     if (markerLayer != undefined) {
+                //       markerLayer.removeMarker(marker);
+                //     }
+                //   },3000);
+                // });
               }
             }
             if (list.length == 0) {
@@ -393,32 +378,32 @@ define([
                 var dist = calcCrow(now_lat, now_lng, $scope.options.charging_stations[i].lat, $scope.options.charging_stations[i].lng);
                 if (dist < 40) {
                   $scope.options.charging_stations[i].dist  = dist;
-                  var param = {
-                    version: 1,
-                    lat: $scope.options.charging_stations[i].lat,
-                    lon: $scope.options.charging_stations[i].lng,
-                    appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
-                    fromCoord: 'WGS84GEO',
-                    toCoord: 'EPSG3857',
-                    format: 'json'
-                  };
-                  $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                    var size = new Tmap.Size(20,20);
-                    var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
-                    var image = new Tmap.Icon('star.png', size, offset);
-                    var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
-                    var marker = new Tmap.Marker(lonLat, image);
-                    var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
-                    $scope.map.addLayer(markerLayer);
-                    markerLayer.addMarker(marker);
-
-                    setTimeout (function(){
-                      if (markerLayer != undefined) {
-                        markerLayer.removeMarker(marker);
-                      }
-                    },3000);
-                  });
-
+                  list.push($scope.options.charging_stations[i]);
+                  // var param = {
+                  //   version: 1,
+                  //   lat: $scope.options.charging_stations[i].lat,
+                  //   lon: $scope.options.charging_stations[i].lng,
+                  //   appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
+                  //   fromCoord: 'WGS84GEO',
+                  //   toCoord: 'EPSG3857',
+                  //   format: 'json'
+                  // };
+                  // $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
+                  //   var size = new Tmap.Size(20,20);
+                  //   var offset = new Tmap.Pixel(-(size.w/2), -(size.h/2));
+                  //   var image = new Tmap.Icon('star40km.png', size, offset);
+                  //   var lonLat = new Tmap.LonLat(response.data.coordinate.lon, response.data.coordinate.lat);
+                  //   var marker = new Tmap.Marker(lonLat, image);
+                  //   var markerLayer = new Tmap.Layer.Markers( "MarkerLayer" );
+                  //   $scope.map.addLayer(markerLayer);
+                  //   markerLayer.addMarker(marker);
+                  //
+                  //   setTimeout (function(){
+                  //     if (markerLayer != undefined) {
+                  //       markerLayer.removeMarker(marker);
+                  //     }
+                  //   },3000);
+                  // });
                 }
               }
             }
@@ -438,11 +423,11 @@ define([
               return sel;
             })();
 
-            setTimeout (function(){
+            // setTimeout (function(){
               $scope.searched = false;
               $scope.drivenDist = 0;
               $scope.addPassList(selectedEv);
-            },4000);
+            // },4000);
           });
         }
         //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
@@ -468,8 +453,10 @@ define([
 
         Vehicle.prototype.stopDrive = function () {
           console.log('stop driving');
-          clearInterval(this.addMarkerInterval);
-          delete this.addMarkerInterval;
+          if(this.addMarkerInterval) {
+            clearInterval(this.addMarkerInterval);
+            delete this.addMarkerInterval;
+          }
         };
 
         //TODO: 배터리 정보 추가 기입

@@ -44,9 +44,9 @@
 
 
     <h5>출발지: <select class="form-control" ng-model="route.src_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
-    <h5 ng-repeat="pass in route.passlist">경유지 {{$index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
+    <!--<h5 ng-repeat="pass in route.passlist">경유지 {{index + 1}}: <select class="form-control" ng-model="pass" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>-->
     <h5>도착지: <select class="form-control" ng-model="route.dest_gps" ng-options="option as option.evName for option in options.charging_stations"></select><br/></h5>
-    <button ng-click="addPassList()">경유지 추가</button><br/>
+    <!--<button ng-click="addPassList()">경유지 추가</button><br/>-->
     <button ng-click="objectDetection()">오브젝트 발견</button><br/>
     <div class="form-group">
       <input type="checkbox" ng-model="tracking"/><label> 주행 추적</label>
