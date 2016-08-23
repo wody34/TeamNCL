@@ -44,8 +44,9 @@ define([
       };
 
       $scope.route = {
-        passlist: []
       };
+
+      $scope.passlist = [];
 
       $scope.options = {
         charging_stations: []
@@ -58,7 +59,7 @@ define([
       $scope.$watch('route', reroute, true);
 
       $scope.addPassList = function(selected) {
-        $scope.route.passlist.push(selected);
+        $scope.passlist.push(selected);
         $scope.route.src_gps = $scope.vehicle.getCurrentPosition();
         reroute($scope.route);
       };
@@ -93,18 +94,18 @@ define([
         $scope.map.addLayer($scope.markerLayer);
 
         var str = "";
-        if($scope.route.passlist.length > 0) {
-          for (var i = 0; i < $scope.route.passlist.length - 1; ++i) {
-            var pass = $scope.route.passlist[i];
+        if($scope.passlist.length > 0) {
+          for (var i = 0; i < $scope.passlist.length - 1; ++i) {
+            var pass = $scope.passlist[i];
             str += pass.lng + "," + pass.lat + ",0,0,0_"
           }
-          str += $scope.route.passlist[i].lng + "," + $scope.route.passlist[i].lat + ",0,G,0";
+          str += $scope.passlist[i].lng + "," + $scope.passlist[i].lat + ",0,G,0";
 
-          for (var i = 0; i < $scope.route.passlist.length; ++i) {
+          for (var i = 0; i < $scope.passlist.length; ++i) {
             var param = {
               version: 1,
-              lat: $scope.route.passlist[i].lat,
-              lon: $scope.route.passlist[i].lng,
+              lat: $scope.passlist[i].lat,
+              lon: $scope.passlist[i].lng,
               appKey: '35bfd940-2738-36fa-9502-f25ddde1ed96',
               fromCoord: 'WGS84GEO',
               toCoord: 'EPSG3857',
@@ -113,10 +114,10 @@ define([
             (function() {
               var index = i;
               $http.get('https://apis.skplanetx.com/tmap/geo/coordconvert?' + $.param(param, true)).then(function(response) {
-                var evName = $scope.route.passlist[index].evName;
-                var evNum = $scope.route.passlist[index].evNum;
-                var type = $scope.route.passlist[index].type;
-                var usg = $scope.route.passlist[index].usg;
+                var evName = $scope.passlist[index].evName;
+                var evNum = $scope.passlist[index].evNum;
+                var type = $scope.passlist[index].type;
+                var usg = $scope.passlist[index].usg;
                 var size = new Tmap.Size(30, 30);
                 var offset = new Tmap.Pixel(-(size.w / 2), -(size.h * 1.5));
                 var icon = new Tmap.Icon('station.png', size, offset);
@@ -133,7 +134,6 @@ define([
                 markerLayer.addMarker(stationMarker);
               });
             })();
-
           }
         }
         var param = {
@@ -159,7 +159,7 @@ define([
         //};
 
         $scope.searchRoute(urlStr+"&format=xml");
-        $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.route.passlist);
+        $scope.driving(urlStr+"&format=json", $scope.route.src_gps, $scope.route.dest_gps, $scope.passlist);
         //detection 이벤트 타입 및 좌표 대입
         //$scope.detectionEvent(event);
       };
